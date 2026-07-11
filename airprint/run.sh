@@ -3,7 +3,7 @@ set -euo pipefail
 
 OPTIONS=/data/options.json
 PRINTER_NAME=$(jq -r '.printer_name' "${OPTIONS}")
-PRINTER_QUEUE=$(printf '%s' "${PRINTER_NAME}" | tr -c 'A-Za-z0-9_-' '_')
+PRINTER_QUEUE=$(printf '%s' "${PRINTER_NAME}" | tr -cs 'A-Za-z0-9_-' '_' | sed -e 's/^_*//' -e 's/_*$//')
 PRINTER_URI=$(jq -r '.printer_uri' "${OPTIONS}")
 PRINTER_LOCATION=$(jq -r '.printer_location' "${OPTIONS}")
 PRINTER_ICON=$(jq -r '.printer_icon // ""' "${OPTIONS}")
