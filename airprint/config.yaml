@@ -1,5 +1,5 @@
 name: AirPrint
-version: "1.2.0"
+version: "1.3.0"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
@@ -12,14 +12,12 @@ host_network: true
 map:
   - addon_config:rw
 options:
-  printer_name: Canon-MF4890DW
+  printer_name: Canon MF4890DW
   printer_uri: socket://192.168.1.14:9100
   printer_location: Office
-  printer_description: Canon MF4890DW
   printer_icon: ""
 schema:
   printer_name: str
   printer_uri: str
   printer_location: str
-  printer_description: str?
   printer_icon: str?

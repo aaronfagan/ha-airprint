@@ -3,15 +3,11 @@ set -euo pipefail
 
 OPTIONS=/data/options.json
 PRINTER_NAME=$(jq -r '.printer_name' "${OPTIONS}")
+PRINTER_QUEUE=$(printf '%s' "${PRINTER_NAME}" | tr -c 'A-Za-z0-9_-' '_')
 PRINTER_URI=$(jq -r '.printer_uri' "${OPTIONS}")
 PRINTER_LOCATION=$(jq -r '.printer_location' "${OPTIONS}")
-PRINTER_DESCRIPTION=$(jq -r '.printer_description // ""' "${OPTIONS}")
 PRINTER_ICON=$(jq -r '.printer_icon // ""' "${OPTIONS}")
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
-
-if [ -z "${PRINTER_DESCRIPTION}" ]; then
-	PRINTER_DESCRIPTION="${PRINTER_NAME}"
-fi
 
 if [ -z "${PRINTER_ICON}" ] || [ ! -f "${PRINTER_ICON}" ]; then
 	PRINTER_ICON=/usr/share/airprint/printer.png
@@ -38,21 +34,21 @@ if ! lpstat -r 2>/dev/null | grep -q "is running"; then
 	exit 1
 fi
 
-lpadmin -p "${PRINTER_NAME}" \
+lpadmin -p "${PRINTER_QUEUE}" \
 	-v "${PRINTER_URI}" \
 	-P "${PPD}" \
-	-D "${PRINTER_DESCRIPTION}" \
+	-D "${PRINTER_NAME}" \
 	-L "${PRINTER_LOCATION}" \
 	-o printer-is-shared=true \
 	-o printer-error-policy=retry-job \
 	-E
-lpadmin -d "${PRINTER_NAME}"
+lpadmin -d "${PRINTER_QUEUE}"
 cupsctl --share-printers
 
 mkdir -p /var/cache/cups/images
-cp "${PRINTER_ICON}" "/var/cache/cups/images/${PRINTER_NAME}.png"
+cp "${PRINTER_ICON}" "/var/cache/cups/images/${PRINTER_QUEUE}.png"
 
-echo "[airprint] queue ${PRINTER_NAME} -> ${PRINTER_URI}"
+echo "[airprint] queue ${PRINTER_QUEUE} (${PRINTER_NAME}) -> ${PRINTER_URI}"
 echo "[airprint] icon ${PRINTER_ICON}"
 
 wait "${CUPSD_PID}"
