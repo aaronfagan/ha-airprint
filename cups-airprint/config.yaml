@@ -1,0 +1,23 @@
+name: CUPS AirPrint
+version: "1.1.0"
+slug: cups_airprint
+description: AirPrint bridge for the Canon MF4890DW
+url: https://github.com/thefagans-ca
+arch:
+  - amd64
+init: true
+boot: auto
+startup: services
+host_network: true
+map:
+  - addon_config:rw
+options:
+  printer_name: Canon-MF4890DW
+  printer_uri: socket://192.168.1.14:9100
+  printer_location: Office
+  printer_icon: ""
+schema:
+  printer_name: str
+  printer_uri: str
+  printer_location: str
+  printer_icon: str?
