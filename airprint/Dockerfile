@@ -27,7 +27,7 @@ RUN apt-get update \
 
 COPY cupsd.conf /etc/cups/cupsd.conf
 COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
-COPY printer.png /usr/share/cups-airprint/printer.png
+COPY printer.png /usr/share/airprint/printer.png
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 

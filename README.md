@@ -24,7 +24,7 @@ Working, and in daily use — but currently **hardcoded to the Canon UFR II driv
 
 1. Home Assistant → **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
 2. Add `https://github.com/aaronfagan/ha-airprint`
-3. Install **CUPS AirPrint**, set the options below, and start it.
+3. Install **AirPrint**, set the options below, and start it.
 
 The add-on builds on-device, which takes a few minutes. It downloads Canon's driver from Canon's own CDN at build time — the driver is proprietary and is deliberately **not** redistributed in this repo.
 

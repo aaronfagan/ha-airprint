@@ -9,7 +9,7 @@ PRINTER_ICON=$(jq -r '.printer_icon // ""' "${OPTIONS}")
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
 
 if [ -z "${PRINTER_ICON}" ] || [ ! -f "${PRINTER_ICON}" ]; then
-	PRINTER_ICON=/usr/share/cups-airprint/printer.png
+	PRINTER_ICON=/usr/share/airprint/printer.png
 fi
 
 mkdir -p /run/dbus
@@ -29,7 +29,7 @@ for _ in $(seq 1 60); do
 done
 
 if ! lpstat -r 2>/dev/null | grep -q "is running"; then
-	echo "[cups-airprint] cupsd failed to start"
+	echo "[airprint] cupsd failed to start"
 	exit 1
 fi
 
@@ -47,7 +47,7 @@ cupsctl --share-printers
 mkdir -p /var/cache/cups/images
 cp "${PRINTER_ICON}" "/var/cache/cups/images/${PRINTER_NAME}.png"
 
-echo "[cups-airprint] queue ${PRINTER_NAME} -> ${PRINTER_URI}"
-lpstat -t || true
+echo "[airprint] queue ${PRINTER_NAME} -> ${PRINTER_URI}"
+echo "[airprint] icon ${PRINTER_ICON}"
 
 wait "${CUPSD_PID}"

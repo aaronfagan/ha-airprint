@@ -1,8 +1,8 @@
-name: CUPS AirPrint
-version: "1.1.0"
-slug: cups_airprint
-description: AirPrint bridge for the Canon MF4890DW
-url: https://github.com/thefagans-ca
+name: AirPrint
+version: "1.1.1"
+slug: airprint
+description: AirPrint bridge for network printers that do not support it
+url: https://github.com/aaronfagan/ha-airprint
 arch:
   - amd64
 init: true
