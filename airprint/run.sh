@@ -5,8 +5,13 @@ OPTIONS=/data/options.json
 PRINTER_NAME=$(jq -r '.printer_name' "${OPTIONS}")
 PRINTER_URI=$(jq -r '.printer_uri' "${OPTIONS}")
 PRINTER_LOCATION=$(jq -r '.printer_location' "${OPTIONS}")
+PRINTER_DESCRIPTION=$(jq -r '.printer_description // ""' "${OPTIONS}")
 PRINTER_ICON=$(jq -r '.printer_icon // ""' "${OPTIONS}")
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
+
+if [ -z "${PRINTER_DESCRIPTION}" ]; then
+	PRINTER_DESCRIPTION="${PRINTER_NAME}"
+fi
 
 if [ -z "${PRINTER_ICON}" ] || [ ! -f "${PRINTER_ICON}" ]; then
 	PRINTER_ICON=/usr/share/airprint/printer.png
@@ -36,7 +41,7 @@ fi
 lpadmin -p "${PRINTER_NAME}" \
 	-v "${PRINTER_URI}" \
 	-P "${PPD}" \
-	-D "Canon MF4890DW" \
+	-D "${PRINTER_DESCRIPTION}" \
 	-L "${PRINTER_LOCATION}" \
 	-o printer-is-shared=true \
 	-o printer-error-policy=retry-job \
