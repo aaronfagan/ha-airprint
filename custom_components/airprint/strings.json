@@ -11,10 +11,10 @@
           "emoji": "Icon"
         },
         "data_description": {
-          "name": "Printer name in print dialogue. Default: {default}",
+          "name": "Printer name. Default: {default}",
           "device": "Which printer on your network to print to.",
-          "location": "Shown under the name when you go to print, e.g. Office.",
-          "emoji": "Shown in front of the name."
+          "location": "Printer location. Optional.",
+          "emoji": "Printer icon. Optional."
         }
       },
       "user": {
@@ -48,10 +48,10 @@
             "emoji": "Icon"
           },
           "data_description": {
-            "name": "Printer name in print dialogue. Default: {default}",
+            "name": "Printer name. Default: {default}",
             "device": "Which printer on your network to print to.",
-            "location": "Shown under the name when you go to print, e.g. Office.",
-            "emoji": "Shown in front of the name."
+            "location": "Printer location. Optional.",
+            "emoji": "Printer icon. Optional."
           }
         },
         "reconfigure": {
@@ -63,10 +63,10 @@
             "emoji": "Icon"
           },
           "data_description": {
-            "name": "Printer name in print dialogue. Default: {default}",
+            "name": "Printer name. Default: {default}",
             "device": "Which printer on your network to print to.",
-            "location": "Shown under the name when you go to print, e.g. Office.",
-            "emoji": "Shown in front of the name."
+            "location": "Printer location. Optional.",
+            "emoji": "Printer icon. Optional."
           }
         }
       },
