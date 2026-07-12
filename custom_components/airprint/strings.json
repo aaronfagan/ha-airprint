@@ -5,16 +5,16 @@
       "confirm": {
         "title": "Add a printer",
         "data": {
-          "name": "Name shown when printing",
+          "name": "Name",
           "device": "Printer",
           "location": "Location",
-          "emoji": "Icon shown when printing"
+          "emoji": "Icon"
         },
         "data_description": {
-          "name": "What your phones, iPads and laptops call this printer. Spaces are fine.",
+          "name": "What your phones call this printer. Spaces are fine.",
           "device": "Which printer on your network to print to.",
           "location": "Shown under the name when you go to print, e.g. Office.",
-          "emoji": "Shown in front of the name. iPhones and iPads show this instead of a picture."
+          "emoji": "Shown in front of the name."
         }
       },
       "user": {
@@ -42,31 +42,31 @@
         "user": {
           "title": "Add a printer",
           "data": {
-            "name": "Name shown when printing",
+            "name": "Name",
             "device": "Printer",
             "location": "Location",
-            "emoji": "Icon shown when printing"
+            "emoji": "Icon"
           },
           "data_description": {
-            "name": "What your phones, iPads and laptops call this printer. Spaces are fine.",
+            "name": "What your phones call this printer. Spaces are fine.",
             "device": "Which printer on your network to print to.",
             "location": "Shown under the name when you go to print, e.g. Office.",
-            "emoji": "Shown in front of the name. iPhones and iPads show this instead of a picture."
+            "emoji": "Shown in front of the name."
           }
         },
         "reconfigure": {
           "title": "Edit printer",
           "data": {
-            "name": "Name shown when printing",
+            "name": "Name",
             "device": "Printer",
             "location": "Location",
-            "emoji": "Icon shown when printing"
+            "emoji": "Icon"
           },
           "data_description": {
-            "name": "What your phones, iPads and laptops call this printer. Spaces are fine.",
+            "name": "What your phones call this printer. Spaces are fine.",
             "device": "Which printer on your network to print to.",
             "location": "Shown under the name when you go to print, e.g. Office.",
-            "emoji": "Shown in front of the name. iPhones and iPads show this instead of a picture."
+            "emoji": "Shown in front of the name."
           }
         }
       },
