@@ -33,7 +33,7 @@ async def async_setup_entry(
 
 class AirPrintStatus(AirPrintEntity, SensorEntity):
     _attr_name = "Status"
-    _attr_icon = "mdi:printer-alert"
+    _attr_icon = "mdi:printer-check"
 
     def __init__(self, coordinator, printer: dict) -> None:
         super().__init__(coordinator, printer, "status")
@@ -60,7 +60,7 @@ class AirPrintStatus(AirPrintEntity, SensorEntity):
 
 class AirPrintJobs(AirPrintEntity, SensorEntity):
     _attr_name = "Queued jobs"
-    _attr_icon = "mdi:printer"
+    _attr_icon = "mdi:tray-full"
     _attr_native_unit_of_measurement = "jobs"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -74,7 +74,7 @@ class AirPrintJobs(AirPrintEntity, SensorEntity):
 
 class AirPrintToner(AirPrintEntity, SensorEntity):
     _attr_name = "Toner"
-    _attr_icon = "mdi:printer-3d-nozzle"
+    _attr_icon = "mdi:water-percent"
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -96,7 +96,7 @@ class AirPrintToner(AirPrintEntity, SensorEntity):
 
 class AirPrintPages(AirPrintEntity, SensorEntity):
     _attr_name = "Pages printed"
-    _attr_icon = "mdi:file-document-multiple"
+    _attr_icon = "mdi:counter"
     _attr_native_unit_of_measurement = "pages"
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
 
