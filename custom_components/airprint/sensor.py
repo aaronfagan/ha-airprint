@@ -95,7 +95,7 @@ class AirPrintToner(AirPrintEntity, SensorEntity):
 
 
 class AirPrintPages(AirPrintEntity, SensorEntity):
-    _attr_name = "Pages printed"
+    _attr_name = "Printed"
     _attr_icon = "mdi:counter"
     _attr_native_unit_of_measurement = "pages"
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
