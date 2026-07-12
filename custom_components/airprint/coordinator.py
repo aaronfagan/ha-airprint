@@ -57,16 +57,21 @@ class AirPrintCoordinator(DataUpdateCoordinator):
             response.raise_for_status()
             return await response.json()
 
-    async def async_get_printers(self) -> list[dict]:
+    async def async_get_options(self) -> dict:
         if not self.slug:
-            return []
+            return {}
         info = await self._supervisor("GET", f"addons/{self.slug}/info")
-        return info.get("data", {}).get("options", {}).get("printers", [])
+        return info.get("data", {}).get("options", {}) or {}
+
+    async def async_get_printers(self) -> list[dict]:
+        return (await self.async_get_options()).get("printers", [])
 
     async def async_save_printers(self, printers: list[dict]) -> None:
         if not self.slug:
             raise RuntimeError("The AirPrint add-on was not found")
-        await self._supervisor(
-            "POST", f"addons/{self.slug}/options", {"options": {"printers": printers}}
-        )
+
+        options = await self.async_get_options()
+        options["printers"] = printers
+
+        await self._supervisor("POST", f"addons/{self.slug}/options", {"options": options})
         await self._supervisor("POST", f"addons/{self.slug}/restart")
