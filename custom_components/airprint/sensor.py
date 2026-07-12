@@ -13,7 +13,12 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(AirPrintJobs(coordinator, printer_id) for printer_id in coordinator.data)
+
+    for subentry_id, subentry in entry.subentries.items():
+        async_add_entities(
+            [AirPrintJobs(coordinator, dict(subentry.data))],
+            config_subentry_id=subentry_id,
+        )
 
 
 class AirPrintJobs(AirPrintEntity, SensorEntity):
@@ -22,8 +27,8 @@ class AirPrintJobs(AirPrintEntity, SensorEntity):
     _attr_native_unit_of_measurement = "jobs"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, coordinator, printer_id: str) -> None:
-        super().__init__(coordinator, printer_id, "jobs")
+    def __init__(self, coordinator, printer: dict) -> None:
+        super().__init__(coordinator, printer, "jobs")
 
     @property
     def native_value(self) -> int:

@@ -17,21 +17,23 @@ async def async_setup_entry(
 ) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities = []
-    for printer_id in coordinator.data:
-        entities.append(AirPrintOnline(coordinator, printer_id))
-        entities.append(AirPrintProblem(coordinator, printer_id))
-
-    async_add_entities(entities)
+    for subentry_id, subentry in entry.subentries.items():
+        printer = dict(subentry.data)
+        async_add_entities(
+            [
+                AirPrintOnline(coordinator, printer),
+                AirPrintProblem(coordinator, printer),
+            ],
+            config_subentry_id=subentry_id,
+        )
 
 
 class AirPrintOnline(AirPrintEntity, BinarySensorEntity):
-    _attr_translation_key = "online"
     _attr_name = "Online"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
-    def __init__(self, coordinator, printer_id: str) -> None:
-        super().__init__(coordinator, printer_id, "online")
+    def __init__(self, coordinator, printer: dict) -> None:
+        super().__init__(coordinator, printer, "online")
 
     @property
     def is_on(self) -> bool:
@@ -39,12 +41,11 @@ class AirPrintOnline(AirPrintEntity, BinarySensorEntity):
 
 
 class AirPrintProblem(AirPrintEntity, BinarySensorEntity):
-    _attr_translation_key = "problem"
     _attr_name = "Problem"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def __init__(self, coordinator, printer_id: str) -> None:
-        super().__init__(coordinator, printer_id, "problem")
+    def __init__(self, coordinator, printer: dict) -> None:
+        super().__init__(coordinator, printer, "problem")
 
     @property
     def is_on(self) -> bool:

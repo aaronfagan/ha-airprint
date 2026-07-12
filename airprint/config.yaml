@@ -1,5 +1,5 @@
 name: AirPrint
-version: "4.0.0"
+version: "4.1.0"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
@@ -27,4 +27,4 @@ schema:
     - name: str
       address: str?
       location: str?
-      emoji: list(🖨️|🖨|📠|📄|🏢|🏠|none)?
+      emoji: str?
