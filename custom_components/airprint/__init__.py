@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN, SUBENTRY, SUBENTRY_TITLE
 from .coordinator import AirPrintCoordinator
@@ -35,8 +36,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 ConfigSubentry(
                     data=_printer(printer),
                     subentry_type=SUBENTRY,
-                    title=printer.get("name", ""),
-                    unique_id=printer.get("name"),
+                    title=SUBENTRY_TITLE,
+                    unique_id=printer.get("device") or printer.get("name"),
                 ),
             )
 
@@ -59,6 +60,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 break
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    devices = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
+        if device.name_by_user == SUBENTRY_TITLE:
+            devices.async_update_device(device.id, name_by_user=None)
+
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
 
