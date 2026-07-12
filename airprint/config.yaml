@@ -1,5 +1,5 @@
 name: AirPrint
-version: "2.2.0"
+version: "3.0.2"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
@@ -10,8 +10,10 @@ boot: auto
 startup: services
 host_network: true
 homeassistant_api: true
-services:
-  - mqtt:want
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: Printer status API, used by the AirPrint integration
 map:
   - addon_config:rw
 options:

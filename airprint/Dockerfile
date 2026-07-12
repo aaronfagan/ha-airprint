@@ -8,6 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       avahi-daemon \
+      avahi-utils \
       ca-certificates \
       cups \
       cups-bsd \
@@ -16,7 +17,7 @@ RUN apt-get update \
       curl \
       dbus \
       jq \
-      mosquitto-clients \
+      python3 \
  && curl -fsSL -o /tmp/canon.tar.gz "${CANON_URL}" \
  && tar xzf /tmp/canon.tar.gz -C /tmp \
  && apt-get install -y --no-install-recommends "/tmp/${CANON_DEB}" \

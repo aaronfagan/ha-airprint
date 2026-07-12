@@ -3,6 +3,7 @@ set -euo pipefail
 
 OPTIONS=/data/options.json
 QUEUES=/tmp/airprint-queues
+STATUS_DIR=/srv
 ICON=/usr/share/airprint/printer.png
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
 
@@ -42,6 +43,8 @@ if [ -n "${DISCOVERED}" ]; then
 fi
 
 : > "${QUEUES}"
+mkdir -p "${STATUS_DIR}"
+echo '{"printers":[],"discovered":[]}' > "${STATUS_DIR}/status.json"
 
 CONFIGURED=0
 for i in $(seq 0 $((COUNT - 1))); do
@@ -111,5 +114,7 @@ fi
 cupsctl --share-printers
 
 /monitor.sh &
+python3 -m http.server 8099 --directory /srv --bind 0.0.0.0 >/dev/null 2>&1 &
+avahi-publish -s "AirPrint add-on" _airprint-status._tcp 8099 >/dev/null 2>&1 &
 
 wait "${CUPSD_PID}"

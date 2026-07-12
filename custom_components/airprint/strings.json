@@ -1,0 +1,22 @@
+{
+  "config": {
+    "flow_title": "AirPrint add-on on {host}",
+    "step": {
+      "confirm": {
+        "title": "AirPrint",
+        "description": "Add the printers shared by the AirPrint add-on on {host}?"
+      },
+      "user": {
+        "title": "AirPrint",
+        "description": "Enter the address of the machine running the AirPrint add-on.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "The AirPrint add-on is already set up."
+    }
+  }
+}
