@@ -4,20 +4,26 @@ set -uo pipefail
 OPTIONS=/data/options.json
 DRIVERS=/share/airprint/drivers
 WORK=/tmp/airprint-drivers
+DOWNLOADED="${DRIVERS}/.downloaded"
 
 mkdir -p "${DRIVERS}" "${WORK}"
+touch "${DOWNLOADED}"
+
+WANTED=""
 
 while read -r url; do
 	[ -n "${url}" ] || continue
 
-	file="${DRIVERS}/${url##*/}"
-	file="${file%%\?*}"
+	name="${url##*/}"
+	name="${name%%\?*}"
+	file="${DRIVERS}/${name}"
+	WANTED="${WANTED}${name}"$'\n'
 
 	if [ -f "${file}" ]; then
 		continue
 	fi
 
-	echo "[airprint] downloading driver ${file##*/}"
+	echo "[airprint] downloading driver ${name}"
 	if ! curl -fsSL -o "${file}.part" "${url}"; then
 		echo "[airprint] could not download ${url}"
 		rm -f "${file}.part"
@@ -25,6 +31,15 @@ while read -r url; do
 	fi
 	mv "${file}.part" "${file}"
 done < <(jq -r '.drivers // [] | .[]' "${OPTIONS}")
+
+while read -r stale; do
+	[ -n "${stale}" ] || continue
+	printf '%s' "${WANTED}" | grep -qxF "${stale}" && continue
+	echo "[airprint] removing driver ${stale}, no longer listed"
+	rm -f "${DRIVERS}/${stale}" "${WORK}/${stale}.extracted"
+done < "${DOWNLOADED}"
+
+printf '%s' "${WANTED}" > "${DOWNLOADED}"
 
 install_deb() {
 	echo "[airprint] installing ${1##*/}"
