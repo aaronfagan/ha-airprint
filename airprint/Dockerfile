@@ -16,19 +16,19 @@ RUN apt-get update \
       curl \
       dbus \
       jq \
+      mosquitto-clients \
  && curl -fsSL -o /tmp/canon.tar.gz "${CANON_URL}" \
  && tar xzf /tmp/canon.tar.gz -C /tmp \
  && apt-get install -y --no-install-recommends "/tmp/${CANON_DEB}" \
  && test -f /usr/share/cups/model/CNRCUPSMF4800ZK.ppd \
  && test -x /usr/lib/cups/filter/rastertoufr2 \
- && apt-get purge -y curl \
- && apt-get autoremove -y \
  && rm -rf /tmp/canon.tar.gz /tmp/linux-UFRII-drv-v630-m17n /var/lib/apt/lists/*
 
 COPY cupsd.conf /etc/cups/cupsd.conf
 COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 COPY printer.png /usr/share/airprint/printer.png
 COPY run.sh /run.sh
-RUN chmod +x /run.sh
+COPY monitor.sh /monitor.sh
+RUN chmod +x /run.sh /monitor.sh
 
 CMD ["/run.sh"]

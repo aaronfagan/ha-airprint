@@ -2,6 +2,7 @@
 set -euo pipefail
 
 OPTIONS=/data/options.json
+QUEUES=/tmp/airprint-queues
 ICON=/usr/share/airprint/printer.png
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
 
@@ -39,6 +40,8 @@ if [ -n "${DISCOVERED}" ]; then
 	echo "[airprint] found on the network:"
 	printf '%s\n' "${DISCOVERED}" | sed 's/^/[airprint]   /'
 fi
+
+: > "${QUEUES}"
 
 CONFIGURED=0
 for i in $(seq 0 $((COUNT - 1))); do
@@ -87,6 +90,15 @@ for i in $(seq 0 $((COUNT - 1))); do
 	mkdir -p /var/cache/cups/images
 	cp "${ICON}" "/var/cache/cups/images/${QUEUE}.png"
 
+	HOST=${URI#*://}
+	HOST=${HOST%%/*}
+	PORT=${HOST##*:}
+	if [ "${PORT}" = "${HOST}" ]; then
+		PORT=9100
+	fi
+	HOST=${HOST%%:*}
+	printf '%s\t%s\t%s\t%s\n' "${QUEUE}" "${HOST}" "${PORT}" "${LABEL}" >> "${QUEUES}"
+
 	echo "[airprint] ${LABEL} -> ${URI}"
 	CONFIGURED=$((CONFIGURED + 1))
 done
@@ -97,5 +109,7 @@ if [ "${CONFIGURED}" -eq 0 ]; then
 fi
 
 cupsctl --share-printers
+
+/monitor.sh &
 
 wait "${CUPSD_PID}"

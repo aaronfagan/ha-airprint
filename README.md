@@ -54,6 +54,20 @@ printers:
 
 Give the printer a DHCP reservation: discovery runs at startup, so a printer that moves IP will otherwise go stale.
 
+## Printer status in Home Assistant
+
+The add-on watches every configured printer once a minute and reports:
+
+| Entity | Meaning |
+| --- | --- |
+| `binary_sensor.<printer>_online` | The printer answers on the network. |
+| `binary_sensor.<printer>_problem` | **Powered on but refusing print jobs** — out of paper, jammed, or in an error state. |
+| `sensor.<printer>_queued_jobs` | Jobs waiting in the queue. |
+
+The `problem` sensor exists because of how these printers behave: when a Canon MF4890DW runs out of paper it **closes its print ports (9100/515) while still answering HTTP**. It looks alive but refuses every job, from every host. Probing the print port is therefore a reliable "can it actually print right now?" signal — better than the silence Printopia gave you. A persistent notification is raised when a printer is refusing jobs *and* work is queued behind it, and when an unconfigured printer shows up on the network.
+
+**MQTT is optional.** If an MQTT broker is configured in Home Assistant, the add-on publishes via MQTT discovery, giving proper devices and entities (assignable to Areas, renameable). If there is no broker, it pushes states straight to Home Assistant instead — fewer niceties, but no dependency. Either way it works out of the box.
+
 ## How it works
 
 - **CUPS 2.4 + Avahi does the AirPrint advertising automatically.** Sharing a PPD-backed queue is enough: CUPS synthesizes the required `URF` TXT record from the PPD and publishes `_ipp._tcp`. The hand-written Avahi `.service` files and `*cupsFilter2` PPD hacks found in older guides are pre-CUPS-2.4 and are actively harmful now.
