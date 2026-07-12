@@ -61,10 +61,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    devices = dr.async_get(hass)
-    for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
-        if device.name_by_user == SUBENTRY_TITLE:
-            devices.async_update_device(device.id, name_by_user=None)
+    async def _unstamp_device_names(_now=None) -> None:
+        await asyncio.sleep(3)
+        devices = dr.async_get(hass)
+        for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
+            if device.name_by_user == SUBENTRY_TITLE:
+                devices.async_update_device(device.id, name_by_user=None)
+
+    entry.async_create_background_task(hass, _unstamp_device_names(), "airprint_device_names")
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
