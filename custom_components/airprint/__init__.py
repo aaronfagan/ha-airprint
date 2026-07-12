@@ -7,7 +7,6 @@ from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN, SUBENTRY, device_name
 from .coordinator import AirPrintCoordinator
@@ -87,17 +86,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 break
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    titles = {subentry.title for subentry in entry.subentries.values()}
-
-    async def _unstamp_device_names(_now=None) -> None:
-        await asyncio.sleep(3)
-        devices = dr.async_get(hass)
-        for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
-            if device.name_by_user in titles:
-                devices.async_update_device(device.id, name_by_user=None)
-
-    entry.async_create_background_task(hass, _unstamp_device_names(), "airprint_device_names")
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True

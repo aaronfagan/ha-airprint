@@ -1,5 +1,5 @@
 name: AirPrint
-version: "6.2.0"
+version: "7.0.0"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
