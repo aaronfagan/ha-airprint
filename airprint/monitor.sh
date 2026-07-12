@@ -65,9 +65,9 @@ while true; do
 		JOBS=$(lpstat -o "${QUEUE}" 2>/dev/null | grep -c . || true)
 
 		PRINTERS=$(printf '%s' "${PRINTERS}" | jq -c \
-			--arg id "${QUEUE}" --arg name "${LABEL}" --arg host "${HOST}" \
+			--arg id "${QUEUE}" --arg device "${DEVICE}" --arg name "${LABEL}" --arg host "${HOST}" \
 			--argjson online "${ONLINE}" --argjson problem "${PROBLEM}" --argjson jobs "${JOBS}" \
-			'. + [{id:$id, name:$name, host:$host, online:$online, problem:$problem, jobs:$jobs}]')
+			'. + [{id:$id, device:$device, name:$name, host:$host, online:$online, problem:$problem, jobs:$jobs}]')
 
 		if [ "${PROBLEM}" = "true" ] && [ "${JOBS}" -gt 0 ]; then
 			if ! grep -qx "stuck_${QUEUE}" "${NOTIFIED}"; then

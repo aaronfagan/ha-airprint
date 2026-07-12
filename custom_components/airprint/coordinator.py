@@ -40,7 +40,7 @@ class AirPrintCoordinator(DataUpdateCoordinator):
         self.slug = data.get("slug") or self.slug
         self.discovered = data.get("discovered", [])
 
-        return {printer["id"]: printer for printer in data.get("printers", [])}
+        return {printer["device"]: printer for printer in data.get("printers", [])}
 
     async def _supervisor(self, method: str, path: str, json: dict | None = None) -> dict:
         token = os.environ.get("SUPERVISOR_TOKEN")

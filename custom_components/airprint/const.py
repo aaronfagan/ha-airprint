@@ -10,5 +10,5 @@ EMOJI = ["🖨️", "📠", "📄", "📁", "☁️", "🏢", "🏠"]
 DEFAULT_EMOJI = "🖨️"
 
 
-def queue_id(name: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
+def device_id(device: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_-]+", "_", device).strip("_")
