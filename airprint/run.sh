@@ -2,19 +2,8 @@
 set -euo pipefail
 
 OPTIONS=/data/options.json
-PRINTER_NAME=$(jq -r '.printer_name' "${OPTIONS}")
-PRINTER_QUEUE=$(printf '%s' "${PRINTER_NAME}" | tr -cs 'A-Za-z0-9_-' '_' | sed -e 's/^_*//' -e 's/_*$//')
-PRINTER_URI=$(jq -r '.printer_uri' "${OPTIONS}")
-PRINTER_LOCATION=$(jq -r '.printer_location' "${OPTIONS}")
-PRINTER_EMOJI=$(jq -r '.printer_emoji // "none"' "${OPTIONS}")
-PRINTER_ICON=/usr/share/airprint/printer.png
+ICON=/usr/share/airprint/printer.png
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
-
-if [ "${PRINTER_EMOJI}" = "none" ] || [ -z "${PRINTER_EMOJI}" ]; then
-	PRINTER_LABEL="${PRINTER_NAME}"
-else
-	PRINTER_LABEL="${PRINTER_EMOJI} ${PRINTER_NAME}"
-fi
 
 mkdir -p /run/dbus
 rm -f /run/dbus/pid
@@ -37,20 +26,76 @@ if ! lpstat -r 2>/dev/null | grep -q "is running"; then
 	exit 1
 fi
 
-lpadmin -p "${PRINTER_QUEUE}" \
-	-v "${PRINTER_URI}" \
-	-P "${PPD}" \
-	-D "${PRINTER_LABEL}" \
-	-L "${PRINTER_LOCATION}" \
-	-o printer-is-shared=true \
-	-o printer-error-policy=retry-job \
-	-E
-lpadmin -d "${PRINTER_QUEUE}"
+COUNT=$(jq '.printers | length' "${OPTIONS}")
+if [ "${COUNT}" -eq 0 ]; then
+	echo "[airprint] no printers configured"
+	exit 1
+fi
+
+DISCOVERED=$(lpinfo -v 2>/dev/null | awk '/^network socket:\/\/[0-9]/ {print $2}')
+DISCOVERED_COUNT=$(printf '%s' "${DISCOVERED}" | grep -c . || true)
+
+if [ -n "${DISCOVERED}" ]; then
+	echo "[airprint] found on the network:"
+	printf '%s\n' "${DISCOVERED}" | sed 's/^/[airprint]   /'
+fi
+
+CONFIGURED=0
+for i in $(seq 0 $((COUNT - 1))); do
+	NAME=$(jq -r ".printers[${i}].name" "${OPTIONS}")
+	ADDRESS=$(jq -r ".printers[${i}].address // \"\"" "${OPTIONS}")
+	LOCATION=$(jq -r ".printers[${i}].location // \"\"" "${OPTIONS}")
+	EMOJI=$(jq -r ".printers[${i}].emoji // \"none\"" "${OPTIONS}")
+
+	QUEUE=$(printf '%s' "${NAME}" | tr -cs 'A-Za-z0-9_-' '_' | sed -e 's/^_*//' -e 's/_*$//')
+	if [ -z "${QUEUE}" ]; then
+		echo "[airprint] skipping printer ${i}: name must contain letters or numbers"
+		continue
+	fi
+
+	if [ "${EMOJI}" = "none" ] || [ -z "${EMOJI}" ]; then
+		LABEL="${NAME}"
+	else
+		LABEL="${EMOJI} ${NAME}"
+	fi
+
+	if [ -z "${ADDRESS}" ]; then
+		if [ "${DISCOVERED_COUNT}" -eq 1 ]; then
+			URI="${DISCOVERED}"
+		elif [ "${DISCOVERED_COUNT}" -eq 0 ]; then
+			echo "[airprint] skipping ${NAME}: no printer found on the network, set an address"
+			continue
+		else
+			echo "[airprint] skipping ${NAME}: ${DISCOVERED_COUNT} printers found, set an address to choose one"
+			continue
+		fi
+	elif printf '%s' "${ADDRESS}" | grep -q '://'; then
+		URI="${ADDRESS}"
+	else
+		URI="socket://${ADDRESS}"
+	fi
+
+	lpadmin -p "${QUEUE}" \
+		-v "${URI}" \
+		-P "${PPD}" \
+		-D "${LABEL}" \
+		-L "${LOCATION}" \
+		-o printer-is-shared=true \
+		-o printer-error-policy=retry-job \
+		-E
+
+	mkdir -p /var/cache/cups/images
+	cp "${ICON}" "/var/cache/cups/images/${QUEUE}.png"
+
+	echo "[airprint] ${LABEL} -> ${URI}"
+	CONFIGURED=$((CONFIGURED + 1))
+done
+
+if [ "${CONFIGURED}" -eq 0 ]; then
+	echo "[airprint] no printers could be configured"
+	exit 1
+fi
+
 cupsctl --share-printers
-
-mkdir -p /var/cache/cups/images
-cp "${PRINTER_ICON}" "/var/cache/cups/images/${PRINTER_QUEUE}.png"
-
-echo "[airprint] queue ${PRINTER_QUEUE} (${PRINTER_LABEL}) -> ${PRINTER_URI}"
 
 wait "${CUPSD_PID}"

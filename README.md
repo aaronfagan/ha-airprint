@@ -30,12 +30,29 @@ The add-on builds on-device, which takes a few minutes. It downloads Canon's dri
 
 ## Options
 
-| Option | Example | Notes |
-| --- | --- | --- |
-| `printer_name` | `Canon-MF4890DW` | Queue name. Shown on the phone. No spaces. |
-| `printer_uri` | `socket://192.168.1.14:9100` | `socket://` (JetDirect) or `lpd://` |
-| `printer_location` | `Office` | Free text, shown on the phone. |
-| `printer_emoji` | `🖨️` | Dropdown. Prefixed to the advertised name — **this is what shows as the "icon" on iOS** (see below). `none` to disable. |
+Add one block per printer. Each printer gets its own AirPrint entry.
+
+```yaml
+printers:
+  - name: Canon MF4890DW
+    address: ""          # blank = find it on the network
+    location: Office
+    emoji: 🖨️
+  - name: Brother HL-2270
+    address: 192.168.1.22
+    emoji: 📠
+```
+
+| Field | Notes |
+| --- | --- |
+| `name` | Shown when you go to print. Spaces are fine; the CUPS queue id is slugified from it. |
+| `address` | **Leave blank to auto-discover.** Or give an IP (`192.168.1.50`) — `socket://` and port 9100 are implied. A full URI (`lpd://…`) is used as-is. |
+| `location` | Free text, shown under the printer name. |
+| `emoji` | Prefixed to the name — **this is what shows as the "icon" on iOS** (see below). `none` to disable. |
+
+**Auto-discovery** uses CUPS' `dnssd` and `snmp` backends (`lpinfo -v`). It resolves a printer's Bonjour advert (`_pdl-datastream._tcp` for raw 9100 printing) to an IP. It only auto-picks when **exactly one** printer is found — with several on the network it lists them in the log and asks you to set an address, rather than guessing. A printer with no Bonjour advert and SNMP disabled is undiscoverable; type its IP.
+
+Give the printer a DHCP reservation: discovery runs at startup, so a printer that moves IP will otherwise go stale.
 
 ## How it works
 
