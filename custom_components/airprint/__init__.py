@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
@@ -46,6 +47,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await coordinator.async_save_printers(wanted)
         except Exception as err:
             raise ConfigEntryNotReady(f"Could not update the AirPrint add-on: {err}") from err
+
+        for _ in range(30):
+            await asyncio.sleep(2)
+            await coordinator.async_refresh()
+            if coordinator.last_update_success and coordinator.data:
+                break
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
