@@ -1,0 +1,13 @@
+configuration:
+  printer_name:
+    name: Name
+    description: The printer name shown when you go to print. Spaces are fine.
+  printer_uri:
+    name: Address
+    description: Where the printer lives on your network, e.g. socket://192.168.1.50:9100 for a network printer, or lpd://192.168.1.50/queue.
+  printer_location:
+    name: Location
+    description: Shown under the printer name when you go to print, e.g. Office.
+  printer_emoji:
+    name: Icon
+    description: Shown in front of the printer name. iPhones and iPads show this instead of a picture.
