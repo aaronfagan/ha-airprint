@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN, SUBENTRY
+from .const import DOMAIN, SUBENTRY, device_name
 from .coordinator import AirPrintCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,6 +40,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     unique_id=printer.get("device") or printer.get("name"),
                 ),
             )
+
+    for subentry in entry.subentries.values():
+        if not subentry.data.get("discovered_name"):
+            data = dict(subentry.data)
+            data["discovered_name"] = data.get("name") or device_name(data.get("device", ""))
+            hass.config_entries.async_update_subentry(entry, subentry, data=data)
 
     for subentry in entry.subentries.values():
         if subentry.title != subentry.data.get("name"):

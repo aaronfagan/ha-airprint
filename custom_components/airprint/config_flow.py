@@ -24,7 +24,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
-from .const import DEFAULT_EMOJI, DEFAULT_PORT, DOMAIN, EMOJI, SUBENTRY
+from .const import DEFAULT_EMOJI, DEFAULT_PORT, DOMAIN, EMOJI, SUBENTRY, device_name
 
 
 def printer_schema(
@@ -32,10 +32,7 @@ def printer_schema(
 ) -> vol.Schema:
     current = current or {}
 
-    name = current.get("name") or (discovered[0].get("name", "") if discovered else "")
-    fields: dict[Any, Any] = {
-        vol.Optional("name", description={"suggested_value": name}): TextSelector()
-    }
+    fields: dict[Any, Any] = {vol.Optional("name"): TextSelector()}
 
     if not editing:
         if len(discovered) > 1:
@@ -54,16 +51,22 @@ def printer_schema(
         elif not discovered:
             fields[vol.Required("device", default="")] = TextSelector()
 
-    emoji = current.get("emoji", DEFAULT_EMOJI) if current else DEFAULT_EMOJI
-
-    fields[
-        vol.Optional("location", description={"suggested_value": current.get("location", "")})
-    ] = TextSelector()
-    fields[vol.Optional("emoji", description={"suggested_value": emoji})] = SelectSelector(
+    fields[vol.Optional("location")] = TextSelector()
+    fields[vol.Optional("emoji")] = SelectSelector(
         SelectSelectorConfig(options=EMOJI, custom_value=True, mode=SelectSelectorMode.DROPDOWN)
     )
 
     return vol.Schema(fields)
+
+
+def printer_suggested(discovered: list[dict], current: dict[str, Any] | None = None) -> dict:
+    current = current or {}
+    return {
+        "name": current.get("name")
+        or (discovered[0].get("name", "") if discovered else ""),
+        "location": current.get("location", ""),
+        "emoji": current.get("emoji", DEFAULT_EMOJI),
+    }
 
 
 def printer_data(
@@ -78,8 +81,12 @@ def printer_data(
         device = discovered[0]["device"]
         found = discovered[0]
 
-    discovered_name = current.get("discovered_name") or (found or {}).get("name", "")
-    name = user_input.get("name", "").strip() or discovered_name or device
+    discovered_name = (
+        current.get("discovered_name")
+        or (found or {}).get("name")
+        or device_name(device or "")
+    )
+    name = user_input.get("name", "").strip() or discovered_name
 
     return {
         "name": name,
@@ -164,7 +171,9 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="confirm",
-            data_schema=printer_schema(self._discovered),
+            data_schema=self.add_suggested_values_to_schema(
+                printer_schema(self._discovered), printer_suggested(self._discovered)
+            ),
             description_placeholders={"host": self._host or ""},
         )
 
@@ -199,7 +208,12 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
                 unique_id=printer["device"] or printer["name"],
             )
 
-        return self.async_show_form(step_id="user", data_schema=printer_schema(self._discovered))
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(
+                printer_schema(self._discovered), printer_suggested(self._discovered)
+            ),
+        )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -215,5 +229,8 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=printer_schema(self._discovered, current, editing=True),
+            data_schema=self.add_suggested_values_to_schema(
+                printer_schema(self._discovered, current, editing=True),
+                printer_suggested(self._discovered, current),
+            ),
         )
