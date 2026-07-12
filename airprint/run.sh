@@ -5,7 +5,6 @@ OPTIONS=/data/options.json
 QUEUES=/tmp/airprint-queues
 STATUS_DIR=/srv
 ICON=/usr/share/airprint/printer.png
-FALLBACK_PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
 
 driver_for() {
 	local device_id=$1 model=$2 driver=""
@@ -21,20 +20,18 @@ driver_for() {
 	printf '%s' "${driver}"
 }
 
-DRIVERS=/share/airprint/drivers
-mkdir -p "${DRIVERS}"
+/drivers.sh
 
-shopt -s nullglob
-for package in "${DRIVERS}"/*.deb; do
-	echo "[airprint] installing driver ${package##*/}"
-	apt-get install -y --no-install-recommends "${package}" >/dev/null 2>&1 ||
-		echo "[airprint] could not install ${package##*/}"
-done
-for ppd in "${DRIVERS}"/*.ppd "${DRIVERS}"/*.ppd.gz; do
-	echo "[airprint] adding driver ${ppd##*/}"
-	install -m 0644 "${ppd}" /usr/share/cups/model/
-done
-shopt -u nullglob
+pkill -x cupsd 2>/dev/null && sleep 2
+rm -f /run/cups/cupsd.pid
+
+install -m 0644 /usr/share/airprint/cupsd.conf /etc/cups/cupsd.conf
+
+if grep -q '^SystemGroup' /etc/cups/cups-files.conf 2>/dev/null; then
+	sed -i 's/^SystemGroup.*/SystemGroup root lpadmin/' /etc/cups/cups-files.conf
+else
+	echo 'SystemGroup root lpadmin' >> /etc/cups/cups-files.conf
+fi
 
 mkdir -p /run/dbus
 rm -f /run/dbus/pid
@@ -102,22 +99,24 @@ for i in $(seq 0 $((COUNT - 1))); do
 		LABEL="${EMOJI} ${NAME}"
 	fi
 
-	if [ -n "${DRIVER}" ]; then
-		echo "[airprint] ${NAME}: driver ${DRIVER}"
-		DRIVER_ARGS=(-m "${DRIVER}")
-	else
-		echo "[airprint] ${NAME}: no driver matched, using ${FALLBACK_PPD}"
-		DRIVER_ARGS=(-P "${FALLBACK_PPD}")
+	if [ -z "${DRIVER}" ]; then
+		echo "[airprint] skipping ${NAME}: no driver for it — see the README on adding one"
+		continue
 	fi
 
-	lpadmin -p "${QUEUE}" \
+	echo "[airprint] ${NAME}: driver ${DRIVER}"
+
+	if ! lpadmin -p "${QUEUE}" \
 		-v "${DEVICE}" \
-		"${DRIVER_ARGS[@]}" \
+		-m "${DRIVER}" \
 		-D "${LABEL}" \
 		-L "${LOCATION}" \
 		-o printer-is-shared=true \
 		-o printer-error-policy=retry-job \
-		-E
+		-E; then
+		echo "[airprint] skipping ${NAME}: could not create the print queue"
+		continue
+	fi
 
 	mkdir -p /var/cache/cups/images
 	cp "${ICON}" "/var/cache/cups/images/${QUEUE}.png"

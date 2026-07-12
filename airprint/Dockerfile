@@ -1,8 +1,5 @@
 FROM debian:bookworm-slim
 
-ARG CANON_URL="https://gdlp01.c-wss.com/gds/0/0100009240/41/linux-UFRII-drv-v630-m17n-10.tar.gz"
-ARG CANON_DEB="linux-UFRII-drv-v630-m17n/x64/Debian/cnrdrvcups-ufr2-uk_6.30-1.10_amd64.deb"
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
@@ -25,19 +22,23 @@ RUN apt-get update \
       printer-driver-cups-pdf \
       openprinting-ppds \
       foomatic-db-compressed-ppds \
- && curl -fsSL -o /tmp/canon.tar.gz "${CANON_URL}" \
- && tar xzf /tmp/canon.tar.gz -C /tmp \
- && apt-get install -y --no-install-recommends "/tmp/${CANON_DEB}" \
- && test -f /usr/share/cups/model/CNRCUPSMF4800ZK.ppd \
- && test -x /usr/lib/cups/filter/rastertoufr2 \
- && rm -rf /tmp/canon.tar.gz /tmp/linux-UFRII-drv-v630-m17n /var/lib/apt/lists/*
+ && apt-get install -y --no-install-recommends \
+      libcupsimage2 \
+      libgtk-3-0 \
+      libjpeg62-turbo \
+      libjbig0 \
+      libgcrypt20 \
+      lsb-release \
+ && rm -rf /var/lib/apt/lists/*
 
 COPY cupsd.conf /etc/cups/cupsd.conf
+COPY cupsd.conf /usr/share/airprint/cupsd.conf
 COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 COPY printer.png /usr/share/airprint/printer.png
 COPY run.sh /run.sh
 COPY monitor.sh /monitor.sh
+COPY drivers.sh /drivers.sh
 COPY discover.sh /discover.sh
-RUN chmod +x /run.sh /monitor.sh /discover.sh
+RUN chmod +x /run.sh /monitor.sh /drivers.sh /discover.sh
 
 CMD ["/run.sh"]
