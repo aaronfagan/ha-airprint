@@ -69,19 +69,23 @@ while true; do
 	done < "${QUEUES}"
 
 	DISCOVERED="[]"
-	for URI in $(lpinfo -v 2>/dev/null | awk '/^network socket:\/\/[0-9]/ {print $2}'); do
-		IP=${URI#socket://}
-		IP=${IP%%:*}
+	while IFS=$'\t' read -r IP NAME; do
+		[ -n "${IP}" ] || continue
 		case " ${CONFIGURED_HOSTS} " in
 		*" ${IP} "*) continue ;;
 		esac
-		DISCOVERED=$(printf '%s' "${DISCOVERED}" | jq -c --arg ip "${IP}" '. + [$ip]')
+		DISCOVERED=$(printf '%s' "${DISCOVERED}" | jq -c --arg a "${IP}" --arg n "${NAME}" '. + [{address:$a, name:$n}]')
 		grep -qx "new_${IP}" "${NOTIFIED}" && continue
 		echo "new_${IP}" >> "${NOTIFIED}"
 		notify "New printer found" \
-			"A printer at **${IP}** is on your network but is not set up. Add it under Settings → Devices & Services → AirPrint → Configure." \
+			"**${NAME:-A printer}** at **${IP}** is on your network but is not set up. Add it under Settings → Devices & Services → AirPrint." \
 			"new_${IP//./_}"
-	done
+	done <<-DISCOVERY
+		$(lpinfo -l -v 2>/dev/null | awk '
+			/^Device: uri = socket:\/\// { uri=$4; sub("socket://","",uri); sub(":.*","",uri); next }
+			/make-and-model =/ && uri != "" { line=$0; sub(/^[[:space:]]*make-and-model = /,"",line); print uri "\t" line; uri="" }
+		')
+	DISCOVERY
 
 	SLUG=$(curl -sS -m 10 -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/addons/self/info 2>/dev/null | jq -r '.data.slug // ""')
 

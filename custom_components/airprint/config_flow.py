@@ -26,17 +26,20 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from .const import DEFAULT_EMOJI, DEFAULT_PORT, DOMAIN, EMOJI, SUBENTRY
 
 
-def printer_schema(discovered: list[str], current: dict[str, Any] | None = None) -> vol.Schema:
+def printer_schema(discovered: list[dict], current: dict[str, Any] | None = None) -> vol.Schema:
     current = current or {}
 
-    addresses = [address for address in discovered if address]
+    addresses = [found["address"] for found in discovered if found.get("address")]
     if current.get("address"):
         addresses = list(dict.fromkeys([*addresses, current["address"]]))
 
+    name = current.get("name") or (discovered[0].get("name", "") if discovered else "")
+    address = current.get("address") or (discovered[0].get("address", "") if discovered else "")
+
     return vol.Schema(
         {
-            vol.Required("name", default=current.get("name", "")): TextSelector(),
-            vol.Optional("address", default=current.get("address", "")): SelectSelector(
+            vol.Required("name", default=name): TextSelector(),
+            vol.Optional("address", default=address): SelectSelector(
                 SelectSelectorConfig(
                     options=addresses, custom_value=True, mode=SelectSelectorMode.DROPDOWN
                 )
@@ -72,7 +75,18 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured(updates={CONF_HOST: self._host, CONF_PORT: self._port})
 
-        self.context["title_placeholders"] = {"host": self._host}
+        status = await self._async_status()
+        discovered = status.get("discovered", [])
+        printers = status.get("printers", [])
+
+        if discovered:
+            name = discovered[0].get("name") or "AirPrint"
+        elif printers:
+            name = printers[0].get("name") or "AirPrint"
+        else:
+            name = "AirPrint"
+
+        self.context["title_placeholders"] = {"host": self._host, "name": name}
         return await self.async_step_confirm()
 
     async def _async_status(self) -> dict[str, Any]:
@@ -109,14 +123,17 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
         if status.get("printers"):
             return self.async_create_entry(title="AirPrint", data=data)
 
-        discovered = [address for address in status.get("discovered", []) if address]
+        discovered = status.get("discovered", [])
 
         return self.async_show_form(
             step_id="confirm",
             data_schema=printer_schema(discovered),
             description_placeholders={
                 "host": self._host or "",
-                "found": ", ".join(discovered) if discovered else "no printers yet",
+                "found": ", ".join(
+                    f"{found['name']} ({found['address']})" for found in discovered
+                )
+                or "no printers yet",
             },
         )
 

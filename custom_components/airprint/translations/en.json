@@ -1,6 +1,6 @@
 {
   "config": {
-    "flow_title": "AirPrint add-on on {host}",
+    "flow_title": "{name}",
     "step": {
       "confirm": {
         "title": "Add a printer",
