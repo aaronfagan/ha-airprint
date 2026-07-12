@@ -8,7 +8,6 @@ CORE=http://supervisor/core/api
 INTERVAL=60
 
 touch "${NOTIFIED}"
-mkdir -p /srv
 
 notify() {
 	curl -sS -o /dev/null -m 10 \
@@ -23,30 +22,44 @@ port_open() {
 	timeout 4 bash -c "exec 3<>/dev/tcp/$1/$2" 2>/dev/null
 }
 
+resolve() {
+	case "$1" in
+	dnssd://*)
+		local service=${1#dnssd://}
+		service=${service%%._*}
+		timeout 6 avahi-browse -rtp _pdl-datastream._tcp 2>/dev/null |
+			awk -F';' -v name="${service}" '$1 == "=" && $3 == "IPv4" && $4 == name { print $8 "\t" $9; exit }'
+		;;
+	socket://*)
+		local hostport=${1#socket://}
+		hostport=${hostport%%/*}
+		local port=${hostport##*:}
+		[ "${port}" = "${hostport}" ] && port=9100
+		printf '%s\t%s\n' "${hostport%%:*}" "${port}"
+		;;
+	esac
+}
+
 while true; do
-	CONFIGURED_HOSTS=""
 	PRINTERS="[]"
+	CONFIGURED=""
 
-	while IFS=$'\t' read -r QUEUE HOST PORT LABEL; do
+	while IFS=$'\t' read -r QUEUE DEVICE LABEL; do
 		[ -n "${QUEUE}" ] || continue
-		CONFIGURED_HOSTS="${CONFIGURED_HOSTS} ${HOST}"
+		CONFIGURED="${CONFIGURED} ${DEVICE}"
 
-		if port_open "${HOST}" "${PORT}"; then
-			ACCEPTING=true
-			ONLINE=true
-		else
-			ACCEPTING=false
-			if port_open "${HOST}" 80 || ping -c1 -W2 "${HOST}" >/dev/null 2>&1; then
-				ONLINE=true
-			else
-				ONLINE=false
-			fi
-		fi
+		IFS=$'\t' read -r HOST PORT < <(resolve "${DEVICE}")
 
-		if [ "${ONLINE}" = "true" ] && [ "${ACCEPTING}" = "false" ]; then
-			PROBLEM=true
-		else
+		if [ -z "${HOST:-}" ]; then
+			ONLINE=false
 			PROBLEM=false
+			HOST=""
+		elif port_open "${HOST}" "${PORT}"; then
+			ONLINE=true
+			PROBLEM=false
+		else
+			ONLINE=true
+			PROBLEM=true
 		fi
 
 		JOBS=$(lpstat -o "${QUEUE}" 2>/dev/null | grep -c . || true)
@@ -60,7 +73,7 @@ while true; do
 			if ! grep -qx "stuck_${QUEUE}" "${NOTIFIED}"; then
 				echo "stuck_${QUEUE}" >> "${NOTIFIED}"
 				notify "Printer not accepting jobs" \
-					"**${LABEL}** is powered on but refusing print jobs, and ${JOBS} job(s) are waiting. It is usually out of paper, jammed, or showing an error." \
+					"**${LABEL}** is on the network but refusing print jobs, and ${JOBS} job(s) are waiting. It is usually out of paper, jammed, or showing an error." \
 					"stuck_${QUEUE}"
 			fi
 		elif [ "${PROBLEM}" = "false" ]; then
@@ -68,24 +81,27 @@ while true; do
 		fi
 	done < "${QUEUES}"
 
+	FOUND=$(/discover.sh)
 	DISCOVERED="[]"
-	while IFS=$'\t' read -r IP NAME; do
-		[ -n "${IP}" ] || continue
-		case " ${CONFIGURED_HOSTS} " in
-		*" ${IP} "*) continue ;;
+
+	while read -r ROW; do
+		[ -n "${ROW}" ] || continue
+		DEVICE=$(printf '%s' "${ROW}" | jq -r '.device')
+		NAME=$(printf '%s' "${ROW}" | jq -r '.name')
+
+		case " ${CONFIGURED} " in
+		*" ${DEVICE} "*) continue ;;
 		esac
-		DISCOVERED=$(printf '%s' "${DISCOVERED}" | jq -c --arg a "${IP}" --arg n "${NAME}" '. + [{address:$a, name:$n}]')
-		grep -qx "new_${IP}" "${NOTIFIED}" && continue
-		echo "new_${IP}" >> "${NOTIFIED}"
+
+		DISCOVERED=$(printf '%s' "${DISCOVERED}" | jq -c --argjson found "${ROW}" '. + [$found]')
+
+		ID=$(printf '%s' "${DEVICE}" | tr -cs 'A-Za-z0-9' '_')
+		grep -qx "new_${ID}" "${NOTIFIED}" && continue
+		echo "new_${ID}" >> "${NOTIFIED}"
 		notify "New printer found" \
-			"**${NAME:-A printer}** at **${IP}** is on your network but is not set up. Add it under Settings → Devices & Services → AirPrint." \
-			"new_${IP//./_}"
-	done <<-DISCOVERY
-		$(lpinfo -l -v 2>/dev/null | awk '
-			/^Device: uri = socket:\/\// { uri=$4; sub("socket://","",uri); sub(":.*","",uri); next }
-			/make-and-model =/ && uri != "" { line=$0; sub(/^[[:space:]]*make-and-model = /,"",line); print uri "\t" line; uri="" }
-		')
-	DISCOVERY
+			"**${NAME}** is on your network but is not set up. Add it under Settings → Devices & Services → AirPrint." \
+			"new_${ID}"
+	done < <(printf '%s' "${FOUND}" | jq -c '.[]')
 
 	SLUG=$(curl -sS -m 10 -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/addons/self/info 2>/dev/null | jq -r '.data.slug // ""')
 

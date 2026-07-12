@@ -28,60 +28,46 @@ if ! lpstat -r 2>/dev/null | grep -q "is running"; then
 	exit 1
 fi
 
+mkdir -p "${STATUS_DIR}"
+echo '{"printers":[],"discovered":[],"slug":""}' > "${STATUS_DIR}/status.json"
+: > "${QUEUES}"
+
 COUNT=$(jq '.printers | length' "${OPTIONS}")
 if [ "${COUNT}" -eq 0 ]; then
 	echo "[airprint] no printers configured yet — add one in Home Assistant"
 fi
 
-DISCOVERED=$(lpinfo -v 2>/dev/null | awk '/^network socket:\/\/[0-9]/ {print $2}')
-DISCOVERED_COUNT=$(printf '%s' "${DISCOVERED}" | grep -c . || true)
-
-if [ -n "${DISCOVERED}" ]; then
-	echo "[airprint] found on the network:"
-	printf '%s\n' "${DISCOVERED}" | sed 's/^/[airprint]   /'
-fi
-
-: > "${QUEUES}"
-mkdir -p "${STATUS_DIR}"
-echo '{"printers":[],"discovered":[]}' > "${STATUS_DIR}/status.json"
-
-CONFIGURED=0
 for i in $(seq 0 $((COUNT - 1))); do
 	NAME=$(jq -r ".printers[${i}].name" "${OPTIONS}")
-	ADDRESS=$(jq -r ".printers[${i}].address // \"\"" "${OPTIONS}")
+	DEVICE=$(jq -r ".printers[${i}].device // .printers[${i}].address // \"\"" "${OPTIONS}")
 	LOCATION=$(jq -r ".printers[${i}].location // \"\"" "${OPTIONS}")
-	EMOJI=$(jq -r ".printers[${i}].emoji // \"none\"" "${OPTIONS}")
+	EMOJI=$(jq -r ".printers[${i}].emoji // \"\"" "${OPTIONS}")
 
 	QUEUE=$(printf '%s' "${NAME}" | tr -cs 'A-Za-z0-9_-' '_' | sed -e 's/^_*//' -e 's/_*$//')
 	if [ -z "${QUEUE}" ]; then
-		echo "[airprint] skipping printer ${i}: name must contain letters or numbers"
+		echo "[airprint] skipping printer ${i}: the name needs letters or numbers"
 		continue
 	fi
 
-	if [ "${EMOJI}" = "none" ] || [ -z "${EMOJI}" ]; then
+	if [ -z "${DEVICE}" ]; then
+		DEVICE=$(/discover.sh | jq -r '.[0].device // ""')
+	elif ! printf '%s' "${DEVICE}" | grep -q '://'; then
+		DEVICE="socket://${DEVICE}"
+	fi
+
+	if [ -z "${DEVICE}" ]; then
+		echo "[airprint] skipping ${NAME}: no printer found on the network"
+		continue
+	fi
+
+	if [ -z "${EMOJI}" ]; then
 		LABEL="${NAME}"
 	else
 		LABEL="${EMOJI} ${NAME}"
 	fi
 
-	if [ -z "${ADDRESS}" ]; then
-		if [ "${DISCOVERED_COUNT}" -eq 1 ]; then
-			URI="${DISCOVERED}"
-		elif [ "${DISCOVERED_COUNT}" -eq 0 ]; then
-			echo "[airprint] skipping ${NAME}: no printer found on the network, set an address"
-			continue
-		else
-			echo "[airprint] skipping ${NAME}: ${DISCOVERED_COUNT} printers found, set an address to choose one"
-			continue
-		fi
-	elif printf '%s' "${ADDRESS}" | grep -q '://'; then
-		URI="${ADDRESS}"
-	else
-		URI="socket://${ADDRESS}"
-	fi
-
 	lpadmin -p "${QUEUE}" \
-		-v "${URI}" \
+		-v "${DEVICE}" \
 		-P "${PPD}" \
 		-D "${LABEL}" \
 		-L "${LOCATION}" \
@@ -92,17 +78,8 @@ for i in $(seq 0 $((COUNT - 1))); do
 	mkdir -p /var/cache/cups/images
 	cp "${ICON}" "/var/cache/cups/images/${QUEUE}.png"
 
-	HOST=${URI#*://}
-	HOST=${HOST%%/*}
-	PORT=${HOST##*:}
-	if [ "${PORT}" = "${HOST}" ]; then
-		PORT=9100
-	fi
-	HOST=${HOST%%:*}
-	printf '%s\t%s\t%s\t%s\n' "${QUEUE}" "${HOST}" "${PORT}" "${LABEL}" >> "${QUEUES}"
-
-	echo "[airprint] ${LABEL} -> ${URI}"
-	CONFIGURED=$((CONFIGURED + 1))
+	printf '%s\t%s\t%s\n' "${QUEUE}" "${DEVICE}" "${LABEL}" >> "${QUEUES}"
+	echo "[airprint] ${LABEL} -> ${DEVICE}"
 done
 
 cupsctl --share-printers

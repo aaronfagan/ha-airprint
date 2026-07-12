@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
-FIELDS = ("name", "address", "location", "emoji")
+FIELDS = ("name", "device", "location", "emoji")
 
 
 def _printer(data: dict) -> dict:

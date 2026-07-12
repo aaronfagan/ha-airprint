@@ -16,6 +16,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -26,32 +27,54 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from .const import DEFAULT_EMOJI, DEFAULT_PORT, DOMAIN, EMOJI, SUBENTRY
 
 
-def printer_schema(discovered: list[dict], current: dict[str, Any] | None = None) -> vol.Schema:
+def printer_schema(
+    discovered: list[dict], current: dict[str, Any] | None = None, editing: bool = False
+) -> vol.Schema:
     current = current or {}
 
-    addresses = [found["address"] for found in discovered if found.get("address")]
-    if current.get("address"):
-        addresses = list(dict.fromkeys([*addresses, current["address"]]))
-
     name = current.get("name") or (discovered[0].get("name", "") if discovered else "")
-    address = current.get("address") or (discovered[0].get("address", "") if discovered else "")
+    fields: dict[Any, Any] = {vol.Required("name", default=name): TextSelector()}
 
-    return vol.Schema(
-        {
-            vol.Required("name", default=name): TextSelector(),
-            vol.Optional("address", default=address): SelectSelector(
+    if not editing:
+        if len(discovered) > 1:
+            fields[vol.Required("device", default=discovered[0]["device"])] = SelectSelector(
                 SelectSelectorConfig(
-                    options=addresses, custom_value=True, mode=SelectSelectorMode.DROPDOWN
+                    options=[
+                        SelectOptionDict(
+                            value=found["device"],
+                            label=f"{found['name']} ({found['address']})",
+                        )
+                        for found in discovered
+                    ],
+                    mode=SelectSelectorMode.LIST,
                 )
-            ),
-            vol.Optional("location", default=current.get("location", "")): TextSelector(),
-            vol.Optional("emoji", default=current.get("emoji", DEFAULT_EMOJI)): SelectSelector(
-                SelectSelectorConfig(
-                    options=EMOJI, custom_value=True, mode=SelectSelectorMode.DROPDOWN
-                )
-            ),
-        }
+            )
+        elif not discovered:
+            fields[vol.Required("device", default="")] = TextSelector()
+
+    fields[vol.Optional("location", default=current.get("location", ""))] = TextSelector()
+    fields[vol.Optional("emoji", default=current.get("emoji", DEFAULT_EMOJI))] = SelectSelector(
+        SelectSelectorConfig(options=EMOJI, custom_value=True, mode=SelectSelectorMode.DROPDOWN)
     )
+
+    return vol.Schema(fields)
+
+
+def printer_data(
+    user_input: dict[str, Any], discovered: list[dict], current: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    current = current or {}
+
+    device = user_input.get("device") or current.get("device")
+    if not device and discovered:
+        device = discovered[0]["device"]
+
+    return {
+        "name": user_input["name"],
+        "device": device or "",
+        "location": user_input.get("location", ""),
+        "emoji": user_input.get("emoji", ""),
+    }
 
 
 class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -60,6 +83,7 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._host: str | None = None
         self._port: int = DEFAULT_PORT
+        self._discovered: list[dict] = []
 
     @classmethod
     @callback
@@ -67,27 +91,6 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
         return {SUBENTRY: PrinterSubentryFlow}
-
-    async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> ConfigFlowResult:
-        self._host = discovery_info.host
-        self._port = discovery_info.port or DEFAULT_PORT
-
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured(updates={CONF_HOST: self._host, CONF_PORT: self._port})
-
-        status = await self._async_status()
-        discovered = status.get("discovered", [])
-        printers = status.get("printers", [])
-
-        if discovered:
-            name = discovered[0].get("name") or "AirPrint"
-        elif printers:
-            name = printers[0].get("name") or "AirPrint"
-        else:
-            name = "AirPrint"
-
-        self.context["title_placeholders"] = {"host": self._host, "name": name}
-        return await self.async_step_confirm()
 
     async def _async_status(self) -> dict[str, Any]:
         session = async_get_clientsession(self.hass)
@@ -101,40 +104,55 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception:
             return {}
 
+    async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> ConfigFlowResult:
+        self._host = discovery_info.host
+        self._port = discovery_info.port or DEFAULT_PORT
+
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured(updates={CONF_HOST: self._host, CONF_PORT: self._port})
+
+        status = await self._async_status()
+        self._discovered = status.get("discovered", [])
+        printers = status.get("printers", [])
+
+        if self._discovered:
+            name = self._discovered[0].get("name") or "AirPrint"
+        elif printers:
+            name = printers[0].get("name") or "AirPrint"
+        else:
+            name = "AirPrint"
+
+        self.context["title_placeholders"] = {"host": self._host, "name": name}
+
+        if printers:
+            return self.async_create_entry(
+                title="AirPrint", data={CONF_HOST: self._host, CONF_PORT: self._port}
+            )
+
+        return await self.async_step_confirm()
+
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         data = {CONF_HOST: self._host, CONF_PORT: self._port}
 
         if user_input is not None:
+            printer = printer_data(user_input, self._discovered)
             return self.async_create_entry(
                 title="AirPrint",
                 data=data,
                 subentries=[
                     ConfigSubentryData(
-                        data=user_input,
+                        data=printer,
                         subentry_type=SUBENTRY,
-                        title=user_input["name"],
-                        unique_id=user_input["name"],
+                        title=printer["name"],
+                        unique_id=printer["device"] or printer["name"],
                     )
                 ],
             )
 
-        status = await self._async_status()
-
-        if status.get("printers"):
-            return self.async_create_entry(title="AirPrint", data=data)
-
-        discovered = status.get("discovered", [])
-
         return self.async_show_form(
             step_id="confirm",
-            data_schema=printer_schema(discovered),
-            description_placeholders={
-                "host": self._host or "",
-                "found": ", ".join(
-                    f"{found['name']} ({found['address']})" for found in discovered
-                )
-                or "no printers yet",
-            },
+            data_schema=printer_schema(self._discovered),
+            description_placeholders={"host": self._host or ""},
         )
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -155,29 +173,34 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class PrinterSubentryFlow(ConfigSubentryFlow):
-    def _schema(self, current: dict[str, Any] | None = None) -> vol.Schema:
-        coordinator = self.hass.data[DOMAIN][self._get_entry().entry_id]
-        return printer_schema(coordinator.discovered, current)
+    @property
+    def _discovered(self) -> list[dict]:
+        return self.hass.data[DOMAIN][self._get_entry().entry_id].discovered
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         if user_input is not None:
-            return self.async_create_entry(title=user_input["name"], data=user_input)
+            printer = printer_data(user_input, self._discovered)
+            return self.async_create_entry(
+                title=printer["name"],
+                data=printer,
+                unique_id=printer["device"] or printer["name"],
+            )
 
-        return self.async_show_form(step_id="user", data_schema=self._schema())
+        return self.async_show_form(step_id="user", data_schema=printer_schema(self._discovered))
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
         subentry = self._get_reconfigure_subentry()
+        current = dict(subentry.data)
 
         if user_input is not None:
+            printer = printer_data(user_input, self._discovered, current)
             return self.async_update_and_abort(
-                self._get_entry(),
-                subentry,
-                title=user_input["name"],
-                data=user_input,
+                self._get_entry(), subentry, title=printer["name"], data=printer
             )
 
         return self.async_show_form(
-            step_id="reconfigure", data_schema=self._schema(dict(subentry.data))
+            step_id="reconfigure",
+            data_schema=printer_schema(self._discovered, current, editing=True),
         )

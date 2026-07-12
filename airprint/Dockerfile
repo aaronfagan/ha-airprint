@@ -30,6 +30,7 @@ COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 COPY printer.png /usr/share/airprint/printer.png
 COPY run.sh /run.sh
 COPY monitor.sh /monitor.sh
-RUN chmod +x /run.sh /monitor.sh
+COPY discover.sh /discover.sh
+RUN chmod +x /run.sh /monitor.sh /discover.sh
 
 CMD ["/run.sh"]
