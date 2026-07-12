@@ -11,7 +11,7 @@
           "emoji": "Icon"
         },
         "data_description": {
-          "name": "What your phones call this printer. Leave empty for {default}.",
+          "name": "Printer name in print dialogue. Default: {default}",
           "device": "Which printer on your network to print to.",
           "location": "Shown under the name when you go to print, e.g. Office.",
           "emoji": "Shown in front of the name."
@@ -48,7 +48,7 @@
             "emoji": "Icon"
           },
           "data_description": {
-            "name": "What your phones call this printer. Leave empty for {default}.",
+            "name": "Printer name in print dialogue. Default: {default}",
             "device": "Which printer on your network to print to.",
             "location": "Shown under the name when you go to print, e.g. Office.",
             "emoji": "Shown in front of the name."
@@ -63,7 +63,7 @@
             "emoji": "Icon"
           },
           "data_description": {
-            "name": "What your phones call this printer. Leave empty for {default}.",
+            "name": "Printer name in print dialogue. Default: {default}",
             "device": "Which printer on your network to print to.",
             "location": "Shown under the name when you go to print, e.g. Office.",
             "emoji": "Shown in front of the name."
