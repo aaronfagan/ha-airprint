@@ -100,7 +100,8 @@ for i in $(seq 0 $((COUNT - 1))); do
 	fi
 
 	if [ -z "${DRIVER}" ]; then
-		echo "[airprint] skipping ${NAME}: no driver for it — see the README on adding one"
+		echo "[airprint] ${NAME}: no driver — add one in the add-on's Drivers option"
+		printf '%s\t%s\t%s\t%s\n' "${QUEUE}" "${DEVICE}" "${LABEL}" "" >> "${QUEUES}"
 		continue
 	fi
 
@@ -121,7 +122,7 @@ for i in $(seq 0 $((COUNT - 1))); do
 	mkdir -p /var/cache/cups/images
 	cp "${ICON}" "/var/cache/cups/images/${QUEUE}.png"
 
-	printf '%s\t%s\t%s\n' "${QUEUE}" "${DEVICE}" "${LABEL}" >> "${QUEUES}"
+	printf '%s\t%s\t%s\t%s\n' "${QUEUE}" "${DEVICE}" "${LABEL}" "${DRIVER}" >> "${QUEUES}"
 	echo "[airprint] ${LABEL} -> ${DEVICE}"
 done
 

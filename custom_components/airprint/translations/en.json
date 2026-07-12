@@ -25,6 +25,16 @@
           "host": "Host",
           "port": "Port"
         }
+      },
+      "driver": {
+        "title": "{name} needs a driver",
+        "description": "No driver for **{name}** is available, so it cannot print yet.\n\nMost printers are matched automatically; yours needs one from its manufacturer. Paste a link to the driver — a `.deb`, a `.ppd`, or the vendor's `.tar.gz`.\n\nYou can leave this empty and add it later in the add-on's Drivers option.",
+        "data": {
+          "driver": "Driver link"
+        },
+        "data_description": {
+          "driver": "A direct link to the driver file. Host it yourself if you can — vendor links break when they publish an update."
+        }
       }
     },
     "abort": {
@@ -70,12 +80,31 @@
             "location": "Printer location. Optional.",
             "emoji": "Printer icon. Optional."
           }
+        },
+        "driver": {
+          "title": "{name} needs a driver",
+          "description": "No driver for **{name}** is available, so it cannot print yet.\n\nMost printers are matched automatically; yours needs one from its manufacturer. Paste a link to the driver — a `.deb`, a `.ppd`, or the vendor's `.tar.gz`.\n\nYou can leave this empty and add it later in the add-on's Drivers option.",
+          "data": {
+            "driver": "Driver link"
+          },
+          "data_description": {
+            "driver": "A direct link to the driver file. Host it yourself if you can — vendor links break when they publish an update."
+          }
         }
       },
       "abort": {
         "reconfigure_successful": "Printer updated.",
         "already_configured": "That printer is already set up."
+      },
+      "error": {
+        "driver_failed": "Could not add the driver to the add-on."
       }
+    }
+  },
+  "issues": {
+    "no_driver": {
+      "title": "{name} needs a driver",
+      "description": "Home Assistant has no driver for **{name}**, so it cannot print.\n\nMost printers are matched automatically. Yours needs a driver from its manufacturer: add it to the **Drivers** option of the AirPrint add-on, then restart the add-on."
     }
   }
 }

@@ -69,9 +69,10 @@ while true; do
 	CONFIGURED=""
 	FOUND=$(/discover.sh)
 
-	while IFS=$'\t' read -r QUEUE DEVICE LABEL; do
+	while IFS=$'\t' read -r QUEUE DEVICE LABEL DRIVER; do
 		[ -n "${QUEUE}" ] || continue
 		CONFIGURED="${CONFIGURED} ${DEVICE}"
+		DRIVER=${DRIVER:-}
 
 		IFS=$'\t' read -r HOST PORT < <(resolve "${DEVICE}")
 
@@ -112,10 +113,21 @@ while true; do
 
 		PRINTERS=$(printf '%s' "${PRINTERS}" | jq -c \
 			--arg id "${QUEUE}" --arg device "${DEVICE}" --arg name "${LABEL}" --arg host "${HOST}" \
-			--arg model "${MODEL}" --arg supply "${SUPPLY}" \
+			--arg model "${MODEL}" --arg supply "${SUPPLY}" --arg driver "${DRIVER}" \
 			--argjson online "${ONLINE}" --argjson problem "${PROBLEM}" --argjson jobs "${JOBS}" \
 			--argjson toner "${TONER}" --argjson pages "${PAGES}" --argjson reasons "${REASONS}" \
-			'. + [{id:$id, device:$device, name:$name, model:$model, host:$host, online:$online, problem:$problem, jobs:$jobs, toner:$toner, supply:$supply, pages:$pages, reasons:$reasons}]')
+			'. + [{id:$id, device:$device, name:$name, model:$model, driver:$driver, host:$host, online:$online, problem:$problem, jobs:$jobs, toner:$toner, supply:$supply, pages:$pages, reasons:$reasons}]')
+
+		if [ -z "${DRIVER}" ]; then
+			if ! grep -qx "nodriver_${QUEUE}" "${NOTIFIED}"; then
+				echo "nodriver_${QUEUE}" >> "${NOTIFIED}"
+				notify "Printer needs a driver" \
+					"**${LABEL}** has no driver, so it cannot print. Add one in the AirPrint add-on's **Drivers** option — see the [README](https://github.com/aaronfagan/ha-airprint#drivers)." \
+					"nodriver_${QUEUE}"
+			fi
+		else
+			sed -i "/^nodriver_${QUEUE}$/d" "${NOTIFIED}"
+		fi
 
 		if [ "${PROBLEM}" = "true" ] && [ "${JOBS}" -gt 0 ]; then
 			if ! grep -qx "stuck_${QUEUE}" "${NOTIFIED}"; then

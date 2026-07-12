@@ -21,6 +21,8 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
@@ -112,6 +114,8 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
         self._host: str | None = None
         self._port: int = DEFAULT_PORT
         self._discovered: list[dict] = []
+        self._printer: dict[str, Any] | None = None
+        self._driver: str | None = None
 
     @classmethod
     @callback
@@ -159,23 +163,58 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return await self.async_step_confirm()
 
-    async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        data = {CONF_HOST: self._host, CONF_PORT: self._port}
+    def _create(self, printer: dict[str, Any]) -> ConfigFlowResult:
+        data: dict[str, Any] = {CONF_HOST: self._host, CONF_PORT: self._port}
+        if self._driver:
+            data["driver"] = self._driver
+
+        return self.async_create_entry(
+            title="AirPrint",
+            data=data,
+            subentries=[
+                ConfigSubentryData(
+                    data=printer,
+                    subentry_type=SUBENTRY,
+                    title=printer["name"],
+                    unique_id=printer["device"] or printer["name"],
+                )
+            ],
+        )
+
+    def _has_driver(self, device: str) -> bool:
+        found = next((d for d in self._discovered if d["device"] == device), None)
+        return bool(found is None or found.get("driver"))
+
+    async def async_step_driver(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        assert self._printer is not None
 
         if user_input is not None:
-            printer = printer_data(user_input, self._discovered)
-            return self.async_create_entry(
-                title="AirPrint",
-                data=data,
-                subentries=[
-                    ConfigSubentryData(
-                        data=printer,
-                        subentry_type=SUBENTRY,
-                        title=printer["name"],
-                        unique_id=printer["device"] or printer["name"],
+            url = user_input.get("driver", "").strip()
+            if url:
+                self._driver = url
+            return self._create(self._printer)
+
+        return self.async_show_form(
+            step_id="driver",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional("driver"): TextSelector(
+                        TextSelectorConfig(type=TextSelectorType.URL)
                     )
-                ],
-            )
+                }
+            ),
+            description_placeholders={"name": self._printer["name"]},
+        )
+
+    async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            printer = printer_data(user_input, self._discovered)
+
+            if not self._has_driver(printer["device"]):
+                self._printer = printer
+                return await self.async_step_driver()
+
+            return self._create(printer)
 
         return self.async_show_form(
             step_id="confirm",
@@ -207,13 +246,29 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class PrinterSubentryFlow(ConfigSubentryFlow):
+    def __init__(self) -> None:
+        self._printer: dict[str, Any] | None = None
+
+    @property
+    def _coordinator(self):
+        return self.hass.data[DOMAIN][self._get_entry().entry_id]
+
     @property
     def _discovered(self) -> list[dict]:
-        return self.hass.data[DOMAIN][self._get_entry().entry_id].discovered
+        return self._coordinator.discovered
+
+    def _has_driver(self, device: str) -> bool:
+        found = next((d for d in self._discovered if d["device"] == device), None)
+        return bool(found is None or found.get("driver"))
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         if user_input is not None:
             printer = printer_data(user_input, self._discovered)
+
+            if not self._has_driver(printer["device"]):
+                self._printer = printer
+                return await self.async_step_driver()
+
             return self.async_create_entry(
                 title=printer["name"],
                 data=printer,
@@ -229,6 +284,41 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
                 "default": printer_suggested(self._discovered)["name"] or "the printer's name",
                 "found": found_text(self._discovered),
             },
+        )
+
+    async def async_step_driver(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        assert self._printer is not None
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            url = user_input.get("driver", "").strip()
+
+            if url:
+                try:
+                    await self._coordinator.async_add_driver(url)
+                except Exception:
+                    errors["base"] = "driver_failed"
+
+            if not errors:
+                return self.async_create_entry(
+                    title=self._printer["name"],
+                    data=self._printer,
+                    unique_id=self._printer["device"] or self._printer["name"],
+                )
+
+        return self.async_show_form(
+            step_id="driver",
+            errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Optional("driver"): TextSelector(
+                        TextSelectorConfig(type=TextSelectorType.URL)
+                    )
+                }
+            ),
+            description_placeholders={"name": self._printer["name"]},
         )
 
     async def async_step_reconfigure(

@@ -5,7 +5,8 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import DOMAIN, SUBENTRY, device_name
@@ -71,6 +72,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entry, subentry, title=subentry.data.get("name", "")
             )
 
+    driver = entry.data.get("driver")
+    if driver:
+        try:
+            await coordinator.async_add_driver(driver)
+        except Exception as err:
+            _LOGGER.warning("Could not add the driver %s: %s", driver, err)
+        hass.config_entries.async_update_entry(
+            entry, data={k: v for k, v in entry.data.items() if k != "driver"}
+        )
+
     wanted = [_printer(subentry.data) for subentry in entry.subentries.values()]
     if wanted != await coordinator.async_get_printers():
         _LOGGER.info("Updating the AirPrint add-on with %d printer(s)", len(wanted))
@@ -87,8 +98,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    @callback
+    def _check() -> None:
+        _async_check_drivers(hass, coordinator)
+
+    _check()
+    entry.async_on_unload(coordinator.async_add_listener(_check))
+
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
+
+
+@callback
+def _async_check_drivers(hass: HomeAssistant, coordinator) -> None:
+    for printer in coordinator.data.values():
+        issue_id = f"no_driver_{printer['id']}"
+
+        if printer.get("driver"):
+            ir.async_delete_issue(hass, DOMAIN, issue_id)
+            continue
+
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="no_driver",
+            translation_placeholders={"name": printer.get("model") or printer["id"]},
+            learn_more_url="https://github.com/aaronfagan/ha-airprint#drivers",
+        )
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

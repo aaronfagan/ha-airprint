@@ -42,6 +42,9 @@ class AirPrintStatus(AirPrintEntity, SensorEntity):
     def native_value(self) -> str:
         printer = self.printer
 
+        if not printer.get("driver"):
+            return "No driver"
+
         if not printer.get("online"):
             return "Offline"
 
