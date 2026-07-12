@@ -36,7 +36,6 @@ The add-on builds on-device, which takes a few minutes. It downloads Canon's dri
 | `printer_uri` | `socket://192.168.1.14:9100` | `socket://` (JetDirect) or `lpd://` |
 | `printer_location` | `Office` | Free text, shown on the phone. |
 | `printer_emoji` | `🖨️` | Dropdown. Prefixed to the advertised name — **this is what shows as the "icon" on iOS** (see below). `none` to disable. |
-| `printer_icon` | `/share/printer.png` | Optional. A 256×256 PNG. **Only used by macOS/desktop — iOS ignores it.** Defaults to the bundled icon. |
 
 ## How it works
 
@@ -44,7 +43,7 @@ The add-on builds on-device, which takes a few minutes. It downloads Canon's dri
 - **`cups-filters` bridges iOS to the vendor driver**: `image/urf` → PDF → CUPS raster → the vendor's rasterizer → the printer.
 - **The queue is declarative.** It is recreated from the add-on options on every start, so there is no persisted CUPS state to rot.
 - **The "icon" on iOS is an emoji, not an image.** iOS's print picker renders the Bonjour *service name* and ignores the IPP `printer-icons` image entirely. Printopia advertises `🖨 <name>` — the emoji IS the icon. Hence `printer_emoji`, which is prefixed to the advertised name (the CUPS queue id is slugified from `printer_name` alone, so it stays clean).
-- **`printer_icon` is for macOS**, which *does* fetch `printer-icons`. cupsd serves it from `CacheDir` (`/var/cache/cups/images/<queue>.png`) — not the document root, as most guides claim. The directory does not exist by default, so stock CUPS advertises an icon URL that always 404s. To use your printer's real product image, extract it from the vendor's macOS driver (Canon/Brother ship `.icns` files under `/Library/Printers/…`; the PPD's `*APPrinterIconPath` names the right one) and convert it to a 256×256 PNG.
+- **A printer icon is served automatically** — no configuration. It only matters on macOS, which *does* fetch `printer-icons`; iOS ignores it. cupsd serves it from `CacheDir` (`/var/cache/cups/images/<queue>.png`) — not the document root, as most guides claim. The directory does not exist by default, so stock CUPS advertises an icon URL that always 404s. Vendor artwork is not automatable: Linux drivers ship no product images (only macOS drivers bundle `.icns`), so the add-on ships a neutral one.
 
 ## Notes and gotchas
 

@@ -1,5 +1,5 @@
 name: AirPrint
-version: "1.5.0"
+version: "1.6.0"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
@@ -16,10 +16,8 @@ options:
   printer_uri: socket://192.168.1.14:9100
   printer_location: Office
   printer_emoji: 🖨️
-  printer_icon: ""
 schema:
   printer_name: str
   printer_uri: str
   printer_location: str
   printer_emoji: list(🖨️|🖨|📠|📄|🏢|🏠|none)?
-  printer_icon: str?

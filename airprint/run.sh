@@ -7,12 +7,8 @@ PRINTER_QUEUE=$(printf '%s' "${PRINTER_NAME}" | tr -cs 'A-Za-z0-9_-' '_' | sed -
 PRINTER_URI=$(jq -r '.printer_uri' "${OPTIONS}")
 PRINTER_LOCATION=$(jq -r '.printer_location' "${OPTIONS}")
 PRINTER_EMOJI=$(jq -r '.printer_emoji // "none"' "${OPTIONS}")
-PRINTER_ICON=$(jq -r '.printer_icon // ""' "${OPTIONS}")
+PRINTER_ICON=/usr/share/airprint/printer.png
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
-
-if [ -z "${PRINTER_ICON}" ] || [ ! -f "${PRINTER_ICON}" ]; then
-	PRINTER_ICON=/usr/share/airprint/printer.png
-fi
 
 if [ "${PRINTER_EMOJI}" = "none" ] || [ -z "${PRINTER_EMOJI}" ]; then
 	PRINTER_LABEL="${PRINTER_NAME}"
@@ -56,6 +52,5 @@ mkdir -p /var/cache/cups/images
 cp "${PRINTER_ICON}" "/var/cache/cups/images/${PRINTER_QUEUE}.png"
 
 echo "[airprint] queue ${PRINTER_QUEUE} (${PRINTER_LABEL}) -> ${PRINTER_URI}"
-echo "[airprint] icon ${PRINTER_ICON}"
 
 wait "${CUPSD_PID}"
