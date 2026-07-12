@@ -59,6 +59,14 @@ def printer_schema(
     return vol.Schema(fields)
 
 
+def found_text(discovered: list[dict]) -> str:
+    if not discovered:
+        return "No new printers found on the network. Enter the printer's IP address below."
+    return "Found on your network: " + ", ".join(
+        f"{found['name']} ({found['address']})" for found in discovered
+    )
+
+
 def printer_suggested(discovered: list[dict], current: dict[str, Any] | None = None) -> dict:
     current = current or {}
     return {
@@ -176,7 +184,8 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             description_placeholders={
                 "host": self._host or "",
-                "default": printer_suggested(self._discovered)["name"],
+                "default": printer_suggested(self._discovered)["name"] or "the printer's name",
+                "found": found_text(self._discovered),
             },
         )
 
@@ -216,7 +225,10 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
             data_schema=self.add_suggested_values_to_schema(
                 printer_schema(self._discovered), printer_suggested(self._discovered)
             ),
-            description_placeholders={"default": printer_suggested(self._discovered)["name"]},
+            description_placeholders={
+                "default": printer_suggested(self._discovered)["name"] or "the printer's name",
+                "found": found_text(self._discovered),
+            },
         )
 
     async def async_step_reconfigure(
