@@ -5,28 +5,50 @@
 <h1 align="center">AirPrint for Home Assistant</h1>
 
 <p align="center">
-  Turn a printer that has never heard of AirPrint into one that has.
+  Share any network printer as an AirPrint printer, from Home Assistant.
 </p>
 
 ---
 
-Plenty of perfectly good network printers cannot be printed to from a phone or tablet. They are **host-based**: they speak no IPP, no PostScript and no PCL, and depend entirely on a driver to turn a document into something they understand. No amount of Bonjour trickery changes that — something on the network has to run the driver and do the rasterising.
+Home Assistant becomes the print server: it advertises your printer over AirPrint, runs the printer's driver, and gives you sensors for toner, page count and whether the thing is out of paper.
 
-Traditionally that something is a computer that has to stay switched on for everyone else to print.
+It works with printers that have **no AirPrint support at all** — including host-based printers that speak no IPP, no PostScript and no PCL, and cannot otherwise be printed to from a phone or tablet.
 
-This is that computer, replaced by Home Assistant.
+## Does my printer need this?
+
+If your printer already does AirPrint, you don't need this — print to it directly.
+
+If it doesn't, and you have been keeping a computer switched on so that everyone can print, this replaces it. Any printer reachable on your network over **port 9100 (socket) or 515 (LPD)** will work.
+
+## Install
+
+Two pieces: an **add-on** (the print server) and an **integration** (the setup screens and the sensors).
+
+**1. Add-on** — Settings → Add-ons → Add-on Store → ⋮ → **Repositories** → add:
 
 ```
-device  ──IPP/AirPrint──▶  AirPrint add-on  ──driver──▶  your printer
-                           (CUPS + Avahi)                (socket / LPD)
+https://github.com/aaronfagan/ha-airprint
 ```
 
-## What you get
+Install **AirPrint** and start it.
 
-Each printer you add becomes:
+**2. Integration** — add this repository to [HACS](https://hacs.xyz) as an Integration, install **AirPrint**, then restart Home Assistant. (Or copy `custom_components/airprint` into your `config` folder and restart.)
 
-- **An AirPrint printer**, so anything that speaks AirPrint — iPhone, iPad, Mac, and plenty else — can print to it.
-- **A device in Home Assistant**, with:
+**3. Add your printer** — Home Assistant finds the add-on by itself and shows an **AirPrint** card under Settings → Devices & Services. Click **Add**. Your printer is already filled in:
+
+| Field | |
+| --- | --- |
+| **Name** | Pre-filled with the printer's make and model. This is the name shown in the print dialogue. |
+| **Location** | Optional. Shown under the name when printing. |
+| **Icon** | An emoji, shown in front of the name — see [Icons](#icons). |
+
+There is no IP address to type. The printer is found on the network, and stays found even if its address changes — see [How it finds your printer](#how-it-finds-your-printer).
+
+That's it. The printer now appears in the print dialogue on any device that speaks AirPrint.
+
+## Sensors
+
+Each printer becomes a device in Home Assistant:
 
 | Entity | What it tells you |
 | --- | --- |
@@ -37,104 +59,86 @@ Each printer you add becomes:
 | **Toner** | Percentage remaining, with the cartridge name |
 | **Printed** | The printer's lifetime page counter |
 
-Toner, page count and the *reason* behind a problem come from **SNMP** (the standard Printer MIB). Printers that don't expose it simply don't get those sensors; everything else works regardless.
+Toner, page count and the *reason* behind a problem come from **SNMP** (the standard Printer MIB). Printers that don't expose it don't get those sensors; everything else still works.
 
-You also get a **notification** when a printer is refusing jobs with work queued behind it — *"Out of paper"* — and when a printer appears on the network that isn't set up yet. A print server that fails silently is worse than no print server at all.
-
-## Install
-
-Two pieces: an **add-on** (the print server) and an **integration** (the config UI and the sensors).
-
-**1. Add-on** — Settings → Add-ons → Add-on Store → ⋮ → **Repositories** → add:
-
-```
-https://github.com/aaronfagan/ha-airprint
-```
-
-Install **AirPrint** and start it.
-
-**2. Integration** — add this repository to [HACS](https://hacs.xyz) as an Integration, install **AirPrint**, and restart Home Assistant. (Or copy `custom_components/airprint` into your `config` folder and restart.)
-
-**3. Add your printer** — Home Assistant discovers the add-on by itself and shows an **AirPrint** card under Settings → Devices & Services. Click **Add**, and your printer is already filled in:
-
-| Field | |
-| --- | --- |
-| **Name** | Pre-filled with the printer's make and model. This is the name shown in the print dialogue. |
-| **Location** | Optional. Shown under the name when printing. |
-| **Icon** | An emoji, shown in front of the name — see [Icons](#icons). |
-
-There is **no IP address to enter**. See [How it finds your printer](#how-it-finds-your-printer).
+You also get a notification when a printer is refusing jobs with work queued behind it — *"Out of paper"* — and when a printer turns up on the network that isn't set up yet.
 
 ## Drivers
 
-The free driver set is bundled — Gutenprint, brlaser, foomatic, the OpenPrinting PPDs, `printer-driver-all` — and the right one is **matched to your printer automatically** from its IEEE 1284 device ID. Most printers need nothing further.
+Most printers need nothing here.
 
-**Proprietary drivers are not, and cannot be, bundled.** Vendor drivers are non-redistributable — and the host-based printers that need this project most are precisely the ones no free driver can drive. So you supply those yourself, in one of two ways.
+The free driver set is bundled (Gutenprint, brlaser, foomatic, the OpenPrinting PPDs), and the right driver is **matched to your printer automatically** from its device ID. If the add-on's log shows a driver and a queue, you're done.
 
-**Point the add-on at the driver.** In the add-on's configuration:
+**If your printer needs a driver from its manufacturer**, supply it yourself — vendor drivers are proprietary and cannot be shipped with the add-on. Two ways:
+
+**Point the add-on at it.** In the add-on's configuration:
 
 ```yaml
 drivers:
   - https://example.com/drivers/my-printer-driver.tar.gz
 ```
 
-Each is downloaded once, cached, and installed on start. A `.deb`, a `.ppd`, or a vendor `.tar.gz` all work — for a tarball, the add-on finds the packages inside that match your architecture. Change the list and anything no longer in it is removed.
+Each is downloaded once, cached, and installed on start. A `.deb`, a `.ppd` or a vendor `.tar.gz` all work — for a tarball, the packages inside that match your architecture are found and installed. Remove a URL from the list and its file is cleaned up.
 
-Any URL will do, so **host the driver yourself** if you can. Vendor download links are usually version-pinned and will break the day the vendor ships an update.
+Any URL works, so **host the driver yourself** if you can. Vendor links are usually version-pinned and break when the vendor ships an update.
 
 **Or drop the file in.** Put a `.deb`, `.ppd` or `.tar.gz` into `/share/airprint/drivers` (Home Assistant's *share* folder, reachable with the Samba or File Editor add-on). It is installed on start.
 
+If nothing matches your printer, the add-on says so in its log and skips it, rather than setting up a queue that cannot print.
+
 <details>
-<summary><b>Worked example: a host-based Canon laser</b></summary>
+<summary><b>Example: a host-based Canon laser</b></summary>
 
 <br>
 
-Canon's imageCLASS / i-SENSYS lasers are host-based, and no free driver drives them. Canon publishes a Linux driver covering the whole family — one package contains **429 PPDs**, with an arm64 build too.
+Canon's imageCLASS / i-SENSYS lasers are host-based, and no free driver drives them. Canon publishes one Linux driver covering the whole family — a single package holds **429 PPDs**, with an arm64 build too.
 
 1. Open Canon's [UFR II/UFRII LT Printer Driver for Linux](https://asia.canon/en/support/0100924010) page and copy the download link for the `.tar.gz`.
-2. Put it in the add-on's `drivers` option.
-3. Start the add-on. It logs the driver it installed and the PPD it matched:
+2. Add it to the add-on's `drivers` option.
+3. Start the add-on. It logs what it installed and the driver it matched:
 
 ```
 [airprint] downloading driver linux-UFRII-drv-v630-m17n-10.tar.gz
-[airprint] unpacking linux-UFRII-drv-v630-m17n-10.tar.gz
 [airprint] installing cnrdrvcups-ufr2-uk_6.30-1.10_amd64.deb
 [airprint] Canon MF4800 Series: driver CNRCUPSMF4800ZK.ppd
 ```
 
-Note the PPD for the MF4800 series is `CNRCUPSMF4800ZK.ppd` — **`CNR`**, not the `CNCUPS…` that most guides, and some of Canon's own documentation, will tell you.
+The PPD for the MF4800 series is `CNRCUPSMF4800ZK.ppd` — **`CNR`**, not the `CNCUPS…` most guides (and some of Canon's own documentation) will tell you.
 
 </details>
 
-If nothing matches, the add-on says so in its log and skips that printer rather than pretending.
-
 ## How it finds your printer
 
-**It does not store an IP address.** The print queue holds the printer's Bonjour name:
+The print queue holds the printer's Bonjour name, not its IP address:
 
 ```
 dnssd://PRINTER._pdl-datastream._tcp.local/
 ```
 
-CUPS resolves that to an address **at the moment you print** — which is exactly the *"Looking for printer…"* step a laptop does. So the printer's IP can change, DHCP can move it, and it is simply found again. Nothing to reconfigure, no address to keep in sync, and no self-healing machinery to go wrong.
+CUPS resolves it to an address **at the moment you print** — the same *"Looking for printer…"* step a laptop does. The printer's IP can change and it is simply found again: nothing to reconfigure, no address to keep in sync.
 
-If it cannot be resolved, the printer reports **Offline** and the job fails at the device — rather than the print server pretending it knows where the printer lives.
+If it cannot be found, the printer reports **Offline** and the job fails at the device.
 
 A printer that advertises no Bonjour service at all is the one case where you are asked for an address.
 
 ## Icons
 
-**On iOS, a printer's "icon" is an emoji in its name.** The print picker renders the Bonjour service name and ignores the IPP icon image entirely. So the add-on has an **Icon** field: pick an emoji and it is prefixed to the advertised name.
+**On iOS, a printer's "icon" is an emoji in its name.** The print picker shows the advertised name and ignores the icon image entirely. So pick an emoji in the **Icon** field and it is prefixed to the name.
 
-Desktop clients *do* fetch the IPP icon, and the add-on serves one automatically. Nothing to configure.
+Desktop clients *do* fetch the icon image, and the add-on serves one automatically. Nothing to configure.
+
+## Troubleshooting
+
+- **The printer doesn't appear when I print.** Check the add-on's log: it should show a driver and a queue for your printer. If it says no driver matched, see [Drivers](#drivers).
+- **It appears, but jobs never print.** Check the **Status** sensor — out of paper, jammed and door-open are all reported there. Many printers refuse connections entirely when they are out of paper.
+- **It never appears at all.** Home Assistant OS runs its own mDNS stack, and this add-on runs Avahi alongside it. It works, and it is [known to fail for some people](https://github.com/MaxWinterstein/homeassistant-addons/issues/508). That is the place to look.
+- **Home Assistant offers to set up an "IPP" integration.** That is Home Assistant discovering this add-on, which is now genuinely an IPP printer. Ignore the card.
 
 ## Notes
 
-- **Multiple printers** — add as many as you like. Each is its own device, with its own name, icon and sensors.
-- **CUPS 3.x** drops the classic PPD driver model that every proprietary vendor driver depends on. This image is pinned to Debian bookworm (CUPS 2.4). Not urgent, but it is a shrinking road, and not one this project can pave.
-- **mDNS on Home Assistant OS** — HAOS runs its own mDNS stack, and this add-on runs Avahi alongside it; both bind UDP 5353. It works, and it is [known to fail for some people](https://github.com/MaxWinterstein/homeassistant-addons/issues/508). If your printer is advertised but never connects, start there.
-- **Home Assistant's IPP integration will discover this add-on** and offer to set it up. That is not a bug — the add-on genuinely *is* an IPP printer now, which is the entire point. Ignore the card.
+- **Multiple printers** — add as many as you like. Each becomes its own device.
+- **CUPS 3.x** drops the classic driver model that proprietary vendor drivers rely on. The add-on is pinned to Debian bookworm (CUPS 2.4). Not urgent, but worth knowing.
 
 ## Licence
 
-[MIT](LICENSE) for everything in this repository. Vendor drivers are downloaded from the vendor and covered by their own licences; none are redistributed here.
+[MIT](LICENSE). Vendor drivers are downloaded from the vendor and covered by their own licences; none are redistributed here.
