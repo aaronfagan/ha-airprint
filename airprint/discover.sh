@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-MODELS=$(lpinfo -l -v 2>/dev/null | awk '
-	/^Device: uri = socket:\/\// { ip=$4; sub("socket://","",ip); sub(":.*","",ip); next }
-	/make-and-model =/ && ip != "" { line=$0; sub(/^[[:space:]]*make-and-model = /,"",line); print ip "\t" line; ip="" }
-')
+models() {
+	lpinfo -l -v 2>/dev/null | awk '
+		/^Device: uri = socket:\/\// { ip=$4; sub("socket://","",ip); sub(":.*","",ip); next }
+		/make-and-model =/ && ip != "" { line=$0; sub(/^[[:space:]]*make-and-model = /,"",line); print ip "\t" line; ip="" }
+	'
+}
+
+MODELS=$(models)
+for _ in 1 2 3; do
+	[ -n "${MODELS}" ] && break
+	sleep 3
+	MODELS=$(models)
+done
 
 FOUND="[]"
 SEEN=""

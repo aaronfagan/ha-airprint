@@ -43,6 +43,7 @@ resolve() {
 while true; do
 	PRINTERS="[]"
 	CONFIGURED=""
+	FOUND=$(/discover.sh)
 
 	while IFS=$'\t' read -r QUEUE DEVICE LABEL; do
 		[ -n "${QUEUE}" ] || continue
@@ -63,11 +64,13 @@ while true; do
 		fi
 
 		JOBS=$(lpstat -o "${QUEUE}" 2>/dev/null | grep -c . || true)
+		MODEL=$(printf '%s' "${FOUND}" | jq -r --arg d "${DEVICE}" '.[] | select(.device == $d) | .name' | head -1)
 
 		PRINTERS=$(printf '%s' "${PRINTERS}" | jq -c \
 			--arg id "${QUEUE}" --arg device "${DEVICE}" --arg name "${LABEL}" --arg host "${HOST}" \
+			--arg model "${MODEL}" \
 			--argjson online "${ONLINE}" --argjson problem "${PROBLEM}" --argjson jobs "${JOBS}" \
-			'. + [{id:$id, device:$device, name:$name, host:$host, online:$online, problem:$problem, jobs:$jobs}]')
+			'. + [{id:$id, device:$device, name:$name, model:$model, host:$host, online:$online, problem:$problem, jobs:$jobs}]')
 
 		if [ "${PROBLEM}" = "true" ] && [ "${JOBS}" -gt 0 ]; then
 			if ! grep -qx "stuck_${QUEUE}" "${NOTIFIED}"; then
@@ -81,7 +84,6 @@ while true; do
 		fi
 	done < "${QUEUES}"
 
-	FOUND=$(/discover.sh)
 	DISCOVERED="[]"
 
 	while read -r ROW; do

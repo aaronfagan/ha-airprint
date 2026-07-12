@@ -42,10 +42,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
     for subentry in entry.subentries.values():
-        if not subentry.data.get("discovered_name"):
-            data = dict(subentry.data)
-            data["discovered_name"] = data.get("name") or device_name(data.get("device", ""))
-            hass.config_entries.async_update_subentry(entry, subentry, data=data)
+        data = dict(subentry.data)
+        device = data.get("device", "")
+
+        name = data.get("name", "")
+        if "://" in name:
+            name = ""
+
+        discovered = data.get("discovered_name", "")
+        if "://" in discovered:
+            discovered = ""
+
+        model = coordinator.data.get(device, {}).get("model", "")
+
+        if model and discovered == device_name(device):
+            discovered = model
+        if model and name == device_name(device):
+            name = model
+
+        discovered = discovered or model or name or device_name(device)
+        repaired = {**data, "discovered_name": discovered, "name": name or discovered}
+
+        if repaired != data:
+            hass.config_entries.async_update_subentry(entry, subentry, data=repaired)
 
     for subentry in entry.subentries.values():
         if subentry.title != subentry.data.get("name"):
