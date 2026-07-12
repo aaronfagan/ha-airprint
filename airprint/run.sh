@@ -6,11 +6,18 @@ PRINTER_NAME=$(jq -r '.printer_name' "${OPTIONS}")
 PRINTER_QUEUE=$(printf '%s' "${PRINTER_NAME}" | tr -cs 'A-Za-z0-9_-' '_' | sed -e 's/^_*//' -e 's/_*$//')
 PRINTER_URI=$(jq -r '.printer_uri' "${OPTIONS}")
 PRINTER_LOCATION=$(jq -r '.printer_location' "${OPTIONS}")
+PRINTER_EMOJI=$(jq -r '.printer_emoji // "none"' "${OPTIONS}")
 PRINTER_ICON=$(jq -r '.printer_icon // ""' "${OPTIONS}")
 PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
 
 if [ -z "${PRINTER_ICON}" ] || [ ! -f "${PRINTER_ICON}" ]; then
 	PRINTER_ICON=/usr/share/airprint/printer.png
+fi
+
+if [ "${PRINTER_EMOJI}" = "none" ] || [ -z "${PRINTER_EMOJI}" ]; then
+	PRINTER_LABEL="${PRINTER_NAME}"
+else
+	PRINTER_LABEL="${PRINTER_EMOJI} ${PRINTER_NAME}"
 fi
 
 mkdir -p /run/dbus
@@ -37,7 +44,7 @@ fi
 lpadmin -p "${PRINTER_QUEUE}" \
 	-v "${PRINTER_URI}" \
 	-P "${PPD}" \
-	-D "${PRINTER_NAME}" \
+	-D "${PRINTER_LABEL}" \
 	-L "${PRINTER_LOCATION}" \
 	-o printer-is-shared=true \
 	-o printer-error-policy=retry-job \
@@ -48,7 +55,7 @@ cupsctl --share-printers
 mkdir -p /var/cache/cups/images
 cp "${PRINTER_ICON}" "/var/cache/cups/images/${PRINTER_QUEUE}.png"
 
-echo "[airprint] queue ${PRINTER_QUEUE} (${PRINTER_NAME}) -> ${PRINTER_URI}"
+echo "[airprint] queue ${PRINTER_QUEUE} (${PRINTER_LABEL}) -> ${PRINTER_URI}"
 echo "[airprint] icon ${PRINTER_ICON}"
 
 wait "${CUPSD_PID}"
