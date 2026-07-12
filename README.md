@@ -22,41 +22,26 @@ Working, and in daily use — but currently **hardcoded to the Canon UFR II driv
 
 ## Installation
 
-1. Home Assistant → **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
-2. Add `https://github.com/aaronfagan/ha-airprint`
-3. Install **AirPrint**, set the options below, and start it.
+Two pieces: an **add-on** (the print server) and an **integration** (the config UI and the sensors).
+
+1. **Add-on** — Settings → Apps → Store → ⋮ → Repositories → add `https://github.com/aaronfagan/ha-airprint`. Install **AirPrint** and start it.
+2. **Integration** — install this repo in HACS as an integration (or copy `custom_components/airprint` into your HA config and restart).
+3. Home Assistant **auto-discovers** the add-on over mDNS and shows an **AirPrint** card under Settings → Devices & Services. Click **Configure**.
 
 The add-on builds on-device, which takes a few minutes. It downloads Canon's driver from Canon's own CDN at build time — the driver is proprietary and is deliberately **not** redistributed in this repo.
 
-## Options
+## Adding printers
 
-Add one block per printer. Each printer gets its own AirPrint entry.
-
-```yaml
-printers:
-  - name: Canon MF4890DW
-    address: ""          # blank = find it on the network
-    location: Office
-    emoji: 🖨️
-  - name: Brother HL-2270
-    address: 192.168.1.22
-    emoji: 📠
-```
+Settings → Devices & Services → **AirPrint** → **Configure** → *Add a printer*:
 
 | Field | Notes |
 | --- | --- |
-| `name` | Shown when you go to print. Spaces are fine; the CUPS queue id is slugified from it. |
-| `address` | **Leave blank to auto-discover.** Or give an IP (`192.168.1.50`) — `socket://` and port 9100 are implied. A full URI (`lpd://…`) is used as-is. |
-| `location` | Free text, shown under the printer name. |
-| `emoji` | Prefixed to the name — **this is what shows as the "icon" on iOS** (see below). `none` to disable. |
+| **Name** | Shown when you go to print. Spaces are fine. |
+| **Address** | Pick a printer **found on your network**, or type an IP. Leave blank to search for it. |
+| **Location** | Free text, shown under the printer name. |
+| **Icon** | An emoji, prefixed to the name — **this is what iOS shows as the printer's icon** (see below). |
 
-**Auto-discovery** uses CUPS' `dnssd` and `snmp` backends (`lpinfo -v`). It resolves a printer's Bonjour advert (`_pdl-datastream._tcp` for raw 9100 printing) to an IP. It only auto-picks when **exactly one** printer is found — with several on the network it lists them in the log and asks you to set an address, rather than guessing. A printer with no Bonjour advert and SNMP disabled is undiscoverable; type its IP.
-
-Give the printer a DHCP reservation: discovery runs at startup, so a printer that moves IP will otherwise go stale.
-
-## Printer status in Home Assistant
-
-The add-on watches every configured printer once a minute and reports:
+Each printer becomes an AirPrint printer on your phones, and a **device in Home Assistant** with:
 
 | Entity | Meaning |
 | --- | --- |
@@ -64,9 +49,9 @@ The add-on watches every configured printer once a minute and reports:
 | `binary_sensor.<printer>_problem` | **Powered on but refusing print jobs** — out of paper, jammed, or in an error state. |
 | `sensor.<printer>_queued_jobs` | Jobs waiting in the queue. |
 
-The `problem` sensor exists because of how these printers behave: when a Canon MF4890DW runs out of paper it **closes its print ports (9100/515) while still answering HTTP**. It looks alive but refuses every job, from every host. Probing the print port is therefore a reliable "can it actually print right now?" signal — better than the silence Printopia gave you. A persistent notification is raised when a printer is refusing jobs *and* work is queued behind it, and when an unconfigured printer shows up on the network.
+The `problem` sensor exists because of how these printers behave: when a Canon MF4890DW runs out of paper it **closes its print ports (9100/515) while still answering HTTP**. It looks alive but refuses every job, from every host. Probing the print port is therefore a reliable "can it actually print right now?" signal. A notification is raised when a printer is refusing jobs with work queued behind it, and when an unconfigured printer appears on the network.
 
-**MQTT is optional.** If an MQTT broker is configured in Home Assistant, the add-on publishes via MQTT discovery, giving proper devices and entities (assignable to Areas, renameable). If there is no broker, it pushes states straight to Home Assistant instead — fewer niceties, but no dependency. Either way it works out of the box.
+**Why an integration and not just add-on options?** Add-on options only render a friendly form for *flat* schemas — a list of printers degrades to a raw YAML editor, and add-ons cannot offer real HA selectors or put entities in the entity registry (so no Areas, no renaming). The integration owns the config UI and writes the printer list into the add-on through the Supervisor API, the same way Z-Wave JS drives its add-on.
 
 ## How it works
 

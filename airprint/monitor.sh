@@ -79,12 +79,14 @@ while true; do
 		grep -qx "new_${IP}" "${NOTIFIED}" && continue
 		echo "new_${IP}" >> "${NOTIFIED}"
 		notify "New printer found" \
-			"A printer at **${IP}** is on your network but is not set up. Add it under Settings → Apps → AirPrint → Configuration." \
+			"A printer at **${IP}** is on your network but is not set up. Add it under Settings → Devices & Services → AirPrint → Configure." \
 			"new_${IP//./_}"
 	done
 
-	jq -nc --argjson printers "${PRINTERS}" --argjson discovered "${DISCOVERED}" \
-		'{printers:$printers, discovered:$discovered}' > "${STATUS}.tmp"
+	SLUG=$(curl -sS -m 10 -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/addons/self/info 2>/dev/null | jq -r '.data.slug // ""')
+
+	jq -nc --argjson printers "${PRINTERS}" --argjson discovered "${DISCOVERED}" --arg slug "${SLUG}" \
+		'{printers:$printers, discovered:$discovered, slug:$slug}' > "${STATUS}.tmp"
 	mv "${STATUS}.tmp" "${STATUS}"
 
 	sleep "${INTERVAL}"
