@@ -13,6 +13,7 @@ class AirPrintEntity(CoordinatorEntity[AirPrintCoordinator]):
     def __init__(self, coordinator: AirPrintCoordinator, printer: dict, key: str) -> None:
         super().__init__(coordinator)
         self._name = printer.get("name", "")
+        self._model = printer.get("discovered_name") or self._name or DEVICE_NAME
         self._device = printer.get("device", "")
         self._attr_unique_id = f"{device_id(self._device)}_{key}"
 
@@ -29,8 +30,8 @@ class AirPrintEntity(CoordinatorEntity[AirPrintCoordinator]):
         host = self.printer.get("host", "")
         return DeviceInfo(
             identifiers={(DOMAIN, device_id(self._device))},
-            name=DEVICE_NAME,
+            name=self._model,
             manufacturer="AirPrint",
-            model="Network printer",
+            model=self._model,
             configuration_url=f"http://{host}/" if host else None,
         )
