@@ -34,7 +34,7 @@ def printer_schema(
 
     name = current.get("name") or (discovered[0].get("name", "") if discovered else "")
     fields: dict[Any, Any] = {
-        vol.Required("name", description={"suggested_value": name}): TextSelector()
+        vol.Optional("name", description={"suggested_value": name}): TextSelector()
     }
 
     if not editing:
@@ -72,11 +72,18 @@ def printer_data(
     current = current or {}
 
     device = user_input.get("device") or current.get("device")
+    found = next((d for d in discovered if d["device"] == device), None)
+
     if not device and discovered:
         device = discovered[0]["device"]
+        found = discovered[0]
+
+    discovered_name = current.get("discovered_name") or (found or {}).get("name", "")
+    name = user_input.get("name", "").strip() or discovered_name or device
 
     return {
-        "name": user_input["name"],
+        "name": name,
+        "discovered_name": discovered_name,
         "device": device or "",
         "location": user_input.get("location", ""),
         "emoji": user_input.get("emoji", ""),
