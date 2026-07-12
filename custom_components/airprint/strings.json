@@ -69,6 +69,10 @@
             "emoji": "Shown in front of the printer name. iPhones and iPads show this instead of a picture."
           }
         }
+      },
+      "abort": {
+        "reconfigure_successful": "Printer updated.",
+        "already_configured": "That printer is already set up."
       }
     }
   }
