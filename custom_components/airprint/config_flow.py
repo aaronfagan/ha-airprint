@@ -174,7 +174,10 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=self.add_suggested_values_to_schema(
                 printer_schema(self._discovered), printer_suggested(self._discovered)
             ),
-            description_placeholders={"host": self._host or ""},
+            description_placeholders={
+                "host": self._host or "",
+                "default": printer_suggested(self._discovered)["name"],
+            },
         )
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -213,6 +216,7 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
             data_schema=self.add_suggested_values_to_schema(
                 printer_schema(self._discovered), printer_suggested(self._discovered)
             ),
+            description_placeholders={"default": printer_suggested(self._discovered)["name"]},
         )
 
     async def async_step_reconfigure(
@@ -233,4 +237,7 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
                 printer_schema(self._discovered, current, editing=True),
                 printer_suggested(self._discovered, current),
             ),
+            description_placeholders={
+                "default": current.get("discovered_name") or current.get("name", "")
+            },
         )
