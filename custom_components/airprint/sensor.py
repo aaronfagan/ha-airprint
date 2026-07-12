@@ -22,12 +22,40 @@ async def async_setup_entry(
         printer = dict(subentry.data)
         async_add_entities(
             [
+                AirPrintStatus(coordinator, printer),
                 AirPrintJobs(coordinator, printer),
                 AirPrintToner(coordinator, printer),
                 AirPrintPages(coordinator, printer),
             ],
             config_subentry_id=subentry_id,
         )
+
+
+class AirPrintStatus(AirPrintEntity, SensorEntity):
+    _attr_name = "Status"
+    _attr_icon = "mdi:printer-alert"
+
+    def __init__(self, coordinator, printer: dict) -> None:
+        super().__init__(coordinator, printer, "status")
+
+    @property
+    def native_value(self) -> str:
+        printer = self.printer
+
+        if not printer.get("online"):
+            return "Offline"
+
+        reasons = printer.get("reasons") or []
+        if reasons:
+            return ", ".join(reasons)
+
+        if printer.get("problem"):
+            return "Not accepting jobs"
+
+        if printer.get("jobs"):
+            return "Printing"
+
+        return "Ready"
 
 
 class AirPrintJobs(AirPrintEntity, SensorEntity):
