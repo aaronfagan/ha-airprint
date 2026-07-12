@@ -41,7 +41,7 @@ class AirPrintOnline(AirPrintEntity, BinarySensorEntity):
 
 
 class AirPrintProblem(AirPrintEntity, BinarySensorEntity):
-    _attr_name = "Problem"
+    _attr_name = "Health"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, coordinator, printer: dict) -> None:
