@@ -59,7 +59,7 @@ class AirPrintStatus(AirPrintEntity, SensorEntity):
 
 
 class AirPrintJobs(AirPrintEntity, SensorEntity):
-    _attr_name = "Queued jobs"
+    _attr_name = "Queue"
     _attr_icon = "mdi:tray-full"
     _attr_native_unit_of_measurement = "jobs"
     _attr_state_class = SensorStateClass.MEASUREMENT
