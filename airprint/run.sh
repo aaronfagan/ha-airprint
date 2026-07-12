@@ -5,7 +5,36 @@ OPTIONS=/data/options.json
 QUEUES=/tmp/airprint-queues
 STATUS_DIR=/srv
 ICON=/usr/share/airprint/printer.png
-PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
+FALLBACK_PPD=/usr/share/cups/model/CNRCUPSMF4800ZK.ppd
+
+driver_for() {
+	local device_id=$1 model=$2 driver=""
+
+	if [ -n "${device_id}" ]; then
+		driver=$(lpinfo --device-id "${device_id}" -m 2>/dev/null | awk 'NR == 1 { print $1 }')
+	fi
+
+	if [ -z "${driver}" ] && [ -n "${model}" ]; then
+		driver=$(lpinfo --make-and-model "${model}" -m 2>/dev/null | awk 'NR == 1 { print $1 }')
+	fi
+
+	printf '%s' "${driver}"
+}
+
+DRIVERS=/share/airprint/drivers
+mkdir -p "${DRIVERS}"
+
+shopt -s nullglob
+for package in "${DRIVERS}"/*.deb; do
+	echo "[airprint] installing driver ${package##*/}"
+	apt-get install -y --no-install-recommends "${package}" >/dev/null 2>&1 ||
+		echo "[airprint] could not install ${package##*/}"
+done
+for ppd in "${DRIVERS}"/*.ppd "${DRIVERS}"/*.ppd.gz; do
+	echo "[airprint] adding driver ${ppd##*/}"
+	install -m 0644 "${ppd}" /usr/share/cups/model/
+done
+shopt -u nullglob
 
 mkdir -p /run/dbus
 rm -f /run/dbus/pid
@@ -37,6 +66,8 @@ if [ "${COUNT}" -eq 0 ]; then
 	echo "[airprint] no printers configured yet — add one in Home Assistant"
 fi
 
+FOUND=$(/discover.sh)
+
 for i in $(seq 0 $((COUNT - 1))); do
 	NAME=$(jq -r ".printers[${i}].name" "${OPTIONS}")
 	DEVICE=$(jq -r ".printers[${i}].device // .printers[${i}].address // \"\"" "${OPTIONS}")
@@ -50,7 +81,7 @@ for i in $(seq 0 $((COUNT - 1))); do
 	fi
 
 	if [ -z "${DEVICE}" ]; then
-		DEVICE=$(/discover.sh | jq -r '.[0].device // ""')
+		DEVICE=$(printf '%s' "${FOUND}" | jq -r '.[0].device // ""')
 	elif ! printf '%s' "${DEVICE}" | grep -q '://'; then
 		DEVICE="socket://${DEVICE}"
 	fi
@@ -60,15 +91,28 @@ for i in $(seq 0 $((COUNT - 1))); do
 		continue
 	fi
 
+	DEVICE_ID=$(printf '%s' "${FOUND}" | jq -r --arg d "${DEVICE}" '.[] | select(.device == $d) | .device_id // ""' | head -1)
+	MODEL=$(printf '%s' "${FOUND}" | jq -r --arg d "${DEVICE}" '.[] | select(.device == $d) | .name // ""' | head -1)
+
+	DRIVER=$(driver_for "${DEVICE_ID}" "${MODEL}")
+
 	if [ -z "${EMOJI}" ]; then
 		LABEL="${NAME}"
 	else
 		LABEL="${EMOJI} ${NAME}"
 	fi
 
+	if [ -n "${DRIVER}" ]; then
+		echo "[airprint] ${NAME}: driver ${DRIVER}"
+		DRIVER_ARGS=(-m "${DRIVER}")
+	else
+		echo "[airprint] ${NAME}: no driver matched, using ${FALLBACK_PPD}"
+		DRIVER_ARGS=(-P "${FALLBACK_PPD}")
+	fi
+
 	lpadmin -p "${QUEUE}" \
 		-v "${DEVICE}" \
-		-P "${PPD}" \
+		"${DRIVER_ARGS[@]}" \
 		-D "${LABEL}" \
 		-L "${LOCATION}" \
 		-o printer-is-shared=true \

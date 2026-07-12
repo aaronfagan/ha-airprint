@@ -1,5 +1,5 @@
 name: AirPrint
-version: "5.2.1"
+version: "6.0.1"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
@@ -16,6 +16,7 @@ ports_description:
   8099/tcp: Printer status API, used by the AirPrint integration
 map:
   - addon_config:rw
+  - share:rw
 options:
   printers: []
 schema:

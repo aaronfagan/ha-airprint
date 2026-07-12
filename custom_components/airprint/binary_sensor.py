@@ -49,4 +49,9 @@ class AirPrintProblem(AirPrintEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return bool(self.printer.get("problem"))
+        return bool(self.printer.get("problem")) or bool(self.printer.get("reasons"))
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        reasons = self.printer.get("reasons") or []
+        return {"reason": ", ".join(reasons), "reasons": reasons}

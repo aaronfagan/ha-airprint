@@ -18,7 +18,11 @@ Developed against a **Canon imageCLASS MF4890DW** (MF4800 series, UFR II LT — 
 
 ## Status
 
-Working, and in daily use — but currently **hardcoded to the Canon UFR II driver family**. See [Roadmap](#roadmap).
+Working, and in daily use.
+
+**Drivers**: the free driver set (`printer-driver-all`, Gutenprint, brlaser, foomatic, OpenPrinting PPDs) is bundled, and the driver is matched to the printer automatically from its IEEE 1284 device ID. Canon's proprietary UFR II driver is fetched from Canon at build time for host-based Canon lasers, which no free driver can drive.
+
+**Bring your own driver**: drop a `.deb` or `.ppd` into `/share/airprint/drivers` (Home Assistant's *share* folder) and the add-on installs it at startup. That is the escape hatch for any vendor driver that is not in the free set.
 
 ## Installation
 
@@ -46,8 +50,12 @@ Each printer becomes an AirPrint printer on your phones, and a **device in Home 
 | Entity | Meaning |
 | --- | --- |
 | `binary_sensor.<printer>_online` | The printer answers on the network. |
-| `binary_sensor.<printer>_problem` | **Powered on but refusing print jobs** — out of paper, jammed, or in an error state. |
+| `binary_sensor.<printer>_problem` | Something needs attention. The `reason` attribute says what: out of paper, paper jam, toner low, door open… |
 | `sensor.<printer>_queued_jobs` | Jobs waiting in the queue. |
+| `sensor.<printer>_toner` | Toner or ink remaining (%), with the cartridge name. |
+| `sensor.<printer>_pages_printed` | The printer's lifetime page counter. |
+
+Toner, pages and the problem *reason* come from **SNMP** (the standard Printer MIB). Printers that don't expose it simply don't get those sensors; everything else still works.
 
 The `problem` sensor exists because of how these printers behave: when a Canon MF4890DW runs out of paper it **closes its print ports (9100/515) while still answering HTTP**. It looks alive but refuses every job, from every host. Probing the print port is therefore a reliable "can it actually print right now?" signal. A notification is raised when a printer is refusing jobs with work queued behind it, and when an unconfigured printer appears on the network.
 

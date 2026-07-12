@@ -22,6 +22,30 @@ port_open() {
 	timeout 4 bash -c "exec 3<>/dev/tcp/$1/$2" 2>/dev/null
 }
 
+snmp() {
+	snmpget -v1 -c public -t 2 -r 0 -Oqv "$1" "$2" 2>/dev/null | tr -d '"'
+}
+
+error_reasons() {
+	local hex
+	hex=$(snmpget -v1 -c public -t 2 -r 0 -Oqvx "$1" 1.3.6.1.2.1.25.3.5.1.2.1 2>/dev/null | tr -cd '0-9A-Fa-f')
+	[ -n "${hex}" ] || return 0
+
+	local bits=$((16#${hex:0:2}))
+	local reasons=()
+
+	((bits & 0x80)) && reasons+=("Paper low")
+	((bits & 0x40)) && reasons+=("Out of paper")
+	((bits & 0x20)) && reasons+=("Toner low")
+	((bits & 0x10)) && reasons+=("Out of toner")
+	((bits & 0x08)) && reasons+=("Door open")
+	((bits & 0x04)) && reasons+=("Paper jam")
+	((bits & 0x02)) && reasons+=("Offline")
+	((bits & 0x01)) && reasons+=("Needs attention")
+
+	printf '%s\n' "${reasons[@]}"
+}
+
 resolve() {
 	case "$1" in
 	dnssd://*)
@@ -66,17 +90,40 @@ while true; do
 		JOBS=$(lpstat -o "${QUEUE}" 2>/dev/null | grep -c . || true)
 		MODEL=$(printf '%s' "${FOUND}" | jq -r --arg d "${DEVICE}" '.[] | select(.device == $d) | .name' | head -1)
 
+		TONER=null
+		SUPPLY=""
+		PAGES=null
+		REASONS="[]"
+
+		if [ -n "${HOST}" ]; then
+			SUPPLY=$(snmp "${HOST}" 1.3.6.1.2.1.43.11.1.1.6.1.1)
+			LEVEL=$(snmp "${HOST}" 1.3.6.1.2.1.43.11.1.1.9.1.1)
+			CAPACITY=$(snmp "${HOST}" 1.3.6.1.2.1.43.11.1.1.8.1.1)
+			COUNT=$(snmp "${HOST}" 1.3.6.1.2.1.43.10.2.1.4.1.1)
+
+			if [ -n "${LEVEL}" ] && [ -n "${CAPACITY}" ] && [ "${CAPACITY}" -gt 0 ] 2>/dev/null; then
+				TONER=$((LEVEL * 100 / CAPACITY))
+			fi
+			[ -n "${COUNT}" ] && [ "${COUNT}" -ge 0 ] 2>/dev/null && PAGES=${COUNT}
+
+			REASONS=$(error_reasons "${HOST}" | jq -Rc '[., inputs] | map(select(length > 0))' 2>/dev/null || echo '[]')
+			[ -n "${REASONS}" ] || REASONS="[]"
+		fi
+
 		PRINTERS=$(printf '%s' "${PRINTERS}" | jq -c \
 			--arg id "${QUEUE}" --arg device "${DEVICE}" --arg name "${LABEL}" --arg host "${HOST}" \
-			--arg model "${MODEL}" \
+			--arg model "${MODEL}" --arg supply "${SUPPLY}" \
 			--argjson online "${ONLINE}" --argjson problem "${PROBLEM}" --argjson jobs "${JOBS}" \
-			'. + [{id:$id, device:$device, name:$name, model:$model, host:$host, online:$online, problem:$problem, jobs:$jobs}]')
+			--argjson toner "${TONER}" --argjson pages "${PAGES}" --argjson reasons "${REASONS}" \
+			'. + [{id:$id, device:$device, name:$name, model:$model, host:$host, online:$online, problem:$problem, jobs:$jobs, toner:$toner, supply:$supply, pages:$pages, reasons:$reasons}]')
 
 		if [ "${PROBLEM}" = "true" ] && [ "${JOBS}" -gt 0 ]; then
 			if ! grep -qx "stuck_${QUEUE}" "${NOTIFIED}"; then
 				echo "stuck_${QUEUE}" >> "${NOTIFIED}"
+				WHY=$(printf '%s' "${REASONS}" | jq -r 'join(", ")')
+				[ -n "${WHY}" ] || WHY="It is usually out of paper, jammed, or showing an error"
 				notify "Printer not accepting jobs" \
-					"**${LABEL}** is on the network but refusing print jobs, and ${JOBS} job(s) are waiting. It is usually out of paper, jammed, or showing an error." \
+					"**${LABEL}** is refusing print jobs and ${JOBS} job(s) are waiting. ${WHY}." \
 					"stuck_${QUEUE}"
 			fi
 		elif [ "${PROBLEM}" = "false" ]; then

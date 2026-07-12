@@ -18,6 +18,13 @@ RUN apt-get update \
       dbus \
       jq \
       python3 \
+      snmp \
+ && apt-get install -y --no-install-recommends \
+      printer-driver-all \
+      printer-driver-brlaser \
+      printer-driver-cups-pdf \
+      openprinting-ppds \
+      foomatic-db-compressed-ppds \
  && curl -fsSL -o /tmp/canon.tar.gz "${CANON_URL}" \
  && tar xzf /tmp/canon.tar.gz -C /tmp \
  && apt-get install -y --no-install-recommends "/tmp/${CANON_DEB}" \
