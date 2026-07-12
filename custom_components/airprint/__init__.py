@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN, SUBENTRY, SUBENTRY_TITLE
+from .const import DOMAIN, SUBENTRY
 from .coordinator import AirPrintCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,14 +36,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 ConfigSubentry(
                     data=_printer(printer),
                     subentry_type=SUBENTRY,
-                    title=SUBENTRY_TITLE,
+                    title=printer.get("name", ""),
                     unique_id=printer.get("device") or printer.get("name"),
                 ),
             )
 
     for subentry in entry.subentries.values():
-        if subentry.title == subentry.data.get("name"):
-            hass.config_entries.async_update_subentry(entry, subentry, title=SUBENTRY_TITLE)
+        if subentry.title != subentry.data.get("name"):
+            hass.config_entries.async_update_subentry(
+                entry, subentry, title=subentry.data.get("name", "")
+            )
 
     wanted = [_printer(subentry.data) for subentry in entry.subentries.values()]
     if wanted != await coordinator.async_get_printers():
@@ -61,11 +63,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    titles = {subentry.title for subentry in entry.subentries.values()}
+
     async def _unstamp_device_names(_now=None) -> None:
         await asyncio.sleep(3)
         devices = dr.async_get(hass)
         for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
-            if device.name_by_user == SUBENTRY_TITLE:
+            if device.name_by_user in titles:
                 devices.async_update_device(device.id, name_by_user=None)
 
     entry.async_create_background_task(hass, _unstamp_device_names(), "airprint_device_names")

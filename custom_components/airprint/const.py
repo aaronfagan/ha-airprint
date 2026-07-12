@@ -5,7 +5,7 @@ DEFAULT_PORT = 8099
 UPDATE_INTERVAL = 60
 SUPERVISOR = "http://supervisor"
 SUBENTRY = "printer"
-SUBENTRY_TITLE = "Printer"
+DEVICE_NAME = "Printer"
 
 EMOJI = ["🖨️", "📠", "📄", "📁", "☁️", "🏢", "🏠"]
 DEFAULT_EMOJI = "🖨️"

@@ -3,7 +3,7 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, device_id
+from .const import DEVICE_NAME, DOMAIN, device_id
 from .coordinator import AirPrintCoordinator
 
 
@@ -29,7 +29,7 @@ class AirPrintEntity(CoordinatorEntity[AirPrintCoordinator]):
         host = self.printer.get("host", "")
         return DeviceInfo(
             identifiers={(DOMAIN, device_id(self._device))},
-            name=self._name,
+            name=DEVICE_NAME,
             manufacturer="AirPrint",
             model="Network printer",
             configuration_url=f"http://{host}/" if host else None,

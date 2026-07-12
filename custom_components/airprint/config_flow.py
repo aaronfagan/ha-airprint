@@ -24,7 +24,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
-from .const import DEFAULT_EMOJI, DEFAULT_PORT, DOMAIN, EMOJI, SUBENTRY, SUBENTRY_TITLE
+from .const import DEFAULT_EMOJI, DEFAULT_PORT, DOMAIN, EMOJI, SUBENTRY
 
 
 def printer_schema(
@@ -149,7 +149,7 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
                     ConfigSubentryData(
                         data=printer,
                         subentry_type=SUBENTRY,
-                        title=SUBENTRY_TITLE,
+                        title=printer["name"],
                         unique_id=printer["device"] or printer["name"],
                     )
                 ],
@@ -187,7 +187,7 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
         if user_input is not None:
             printer = printer_data(user_input, self._discovered)
             return self.async_create_entry(
-                title=SUBENTRY_TITLE,
+                title=printer["name"],
                 data=printer,
                 unique_id=printer["device"] or printer["name"],
             )
@@ -202,7 +202,9 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
 
         if user_input is not None:
             printer = printer_data(user_input, self._discovered, current)
-            return self.async_update_and_abort(self._get_entry(), subentry, data=printer)
+            return self.async_update_and_abort(
+                self._get_entry(), subentry, title=printer["name"], data=printer
+            )
 
         return self.async_show_form(
             step_id="reconfigure",
