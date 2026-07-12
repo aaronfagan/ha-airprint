@@ -33,7 +33,9 @@ def printer_schema(
     current = current or {}
 
     name = current.get("name") or (discovered[0].get("name", "") if discovered else "")
-    fields: dict[Any, Any] = {vol.Required("name", default=name): TextSelector()}
+    fields: dict[Any, Any] = {
+        vol.Required("name", description={"suggested_value": name}): TextSelector()
+    }
 
     if not editing:
         if len(discovered) > 1:
@@ -52,8 +54,12 @@ def printer_schema(
         elif not discovered:
             fields[vol.Required("device", default="")] = TextSelector()
 
-    fields[vol.Optional("location", default=current.get("location", ""))] = TextSelector()
-    fields[vol.Optional("emoji", default=current.get("emoji", DEFAULT_EMOJI))] = SelectSelector(
+    emoji = current.get("emoji", DEFAULT_EMOJI) if current else DEFAULT_EMOJI
+
+    fields[
+        vol.Optional("location", description={"suggested_value": current.get("location", "")})
+    ] = TextSelector()
+    fields[vol.Optional("emoji", description={"suggested_value": emoji})] = SelectSelector(
         SelectSelectorConfig(options=EMOJI, custom_value=True, mode=SelectSelectorMode.DROPDOWN)
     )
 
