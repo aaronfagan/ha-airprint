@@ -30,8 +30,7 @@ fi
 
 COUNT=$(jq '.printers | length' "${OPTIONS}")
 if [ "${COUNT}" -eq 0 ]; then
-	echo "[airprint] no printers configured"
-	exit 1
+	echo "[airprint] no printers configured yet — add one in Home Assistant"
 fi
 
 DISCOVERED=$(lpinfo -v 2>/dev/null | awk '/^network socket:\/\/[0-9]/ {print $2}')
@@ -105,11 +104,6 @@ for i in $(seq 0 $((COUNT - 1))); do
 	echo "[airprint] ${LABEL} -> ${URI}"
 	CONFIGURED=$((CONFIGURED + 1))
 done
-
-if [ "${CONFIGURED}" -eq 0 ]; then
-	echo "[airprint] no printers could be configured"
-	exit 1
-fi
 
 cupsctl --share-printers
 
