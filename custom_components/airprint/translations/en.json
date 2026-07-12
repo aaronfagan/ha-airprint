@@ -23,9 +23,10 @@
     "step": {
       "init": {
         "title": "AirPrint",
-        "description": "Add or remove the printers you share with your phones.",
+        "description": "Add, edit or remove the printers you share with your phones.",
         "menu_options": {
           "add": "Add a printer",
+          "edit": "Edit a printer",
           "remove": "Remove a printer"
         }
       },
@@ -50,10 +51,34 @@
         "data": {
           "remove": "Printers to remove"
         }
+      },
+      "edit": {
+        "title": "Edit a printer",
+        "data": {
+          "printer": "Printer"
+        }
+      },
+      "edit_printer": {
+        "title": "Edit {name}",
+        "data": {
+          "name": "Name",
+          "address": "Address",
+          "location": "Location",
+          "emoji": "Icon"
+        },
+        "data_description": {
+          "name": "The printer name shown when you go to print. Spaces are fine.",
+          "address": "Pick a printer found on your network, or type its IP address. Leave blank to search for it.",
+          "location": "Shown under the printer name when you go to print, e.g. Office.",
+          "emoji": "Shown in front of the printer name. iPhones and iPads show this instead of a picture."
+        }
       }
     },
     "error": {
       "cannot_save": "Could not update the AirPrint add-on."
+    },
+    "abort": {
+      "unknown_printer": "That printer no longer exists."
     }
   }
 }
