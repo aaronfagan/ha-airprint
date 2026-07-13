@@ -55,7 +55,7 @@ def printer_schema(
 
     fields[vol.Optional("location")] = TextSelector()
     fields[vol.Optional("icon")] = SelectSelector(
-        SelectSelectorConfig(options=ICONS, custom_value=True, mode=SelectSelectorMode.DROPDOWN)
+        SelectSelectorConfig(options=ICONS, mode=SelectSelectorMode.DROPDOWN)
     )
 
     if editing:
