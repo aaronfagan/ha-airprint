@@ -1,5 +1,5 @@
 name: AirPrint
-version: "1.4.2"
+version: "1.5.0"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
@@ -18,11 +18,8 @@ map:
   - addon_config:rw
   - share:rw
 options:
-  drivers: []
   printers: []
 schema:
-  drivers:
-    - url
   printers:
     - name: str
       device: str?

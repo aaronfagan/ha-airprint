@@ -71,14 +71,9 @@ The free driver set is bundled (Gutenprint, brlaser, foomatic, the OpenPrinting 
 
 **If your printer needs a driver from its manufacturer**, supply it yourself — vendor drivers are proprietary and cannot be shipped with the add-on. Two ways:
 
-**Point the add-on at it.** In the add-on's configuration:
+**Give Home Assistant a link to it.** If no driver is matched when you add the printer, you are asked for one — paste a link and it is downloaded, cached and installed. You can also change it later from the printer's **Driver file URL** field.
 
-```yaml
-drivers:
-  - https://example.com/drivers/my-printer-driver.tar.gz
-```
-
-Each is downloaded once, cached, and installed on start. A `.deb`, a `.ppd` or a vendor `.tar.gz` all work — for a tarball, the packages inside that match your architecture are found and installed. Remove a URL from the list and its file is cleaned up.
+A `.deb`, a `.ppd` or a vendor `.tar.gz` all work — for a tarball, the packages inside that match your architecture are found and installed. Change the link and the old file is cleaned up.
 
 Any URL works, so **host the driver yourself** if you can. Vendor links are usually version-pinned and break when the vendor ships an update.
 
@@ -94,7 +89,7 @@ If nothing matches your printer, the add-on says so in its log and skips it, rat
 Canon's imageCLASS / i-SENSYS lasers are host-based, and no free driver drives them. Canon publishes one Linux driver covering the whole family — a single package holds **429 PPDs**, with an arm64 build too.
 
 1. Open Canon's [UFR II/UFRII LT Printer Driver for Linux](https://asia.canon/en/support/0100924010) page and copy the download link for the `.tar.gz`.
-2. Add it to the add-on's `drivers` option.
+2. Paste it into the printer's **Driver file URL** field when Home Assistant asks for a driver.
 3. Start the add-on. It logs what it installed and the driver it matched:
 
 ```
