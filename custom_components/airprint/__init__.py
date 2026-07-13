@@ -19,8 +19,8 @@ PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 def _printer(data: dict) -> dict:
     printer = {
         "name": data.get("name", ""),
-        "device": data.get("device", ""),
         "location": data.get("location", ""),
+        "device": data.get("device", ""),
     }
 
     if data.get("icon"):
