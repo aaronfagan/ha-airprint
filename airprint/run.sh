@@ -67,7 +67,7 @@ FOUND=$(/discover.sh)
 
 for i in $(seq 0 $((COUNT - 1))); do
 	NAME=$(jq -r ".printers[${i}].name" "${OPTIONS}")
-	DEVICE=$(jq -r ".printers[${i}].device // .printers[${i}].address // \"\"" "${OPTIONS}")
+	DEVICE=$(jq -r ".printers[${i}].device // \"\"" "${OPTIONS}")
 	LOCATION=$(jq -r ".printers[${i}].location // \"\"" "${OPTIONS}")
 	PRINTER_ICON=$(jq -r ".printers[${i}].icon // \"\"" "${OPTIONS}")
 

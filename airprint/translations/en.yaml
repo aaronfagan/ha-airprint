@@ -1,4 +1,4 @@
 configuration:
   printers:
     name: Printers
-    description: Add each printer you want to share. Every printer gets its own AirPrint entry on your phone.
+    description: Managed in Settings → Devices & Services → AirPrint. Anything changed here is overwritten.
