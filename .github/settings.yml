@@ -1,0 +1,21 @@
+repository:
+  name: 'ha-airprint'
+  description: 'SVG Credit Card & Payment Icons: 6 Styles, 80 Icons'
+  homepage: 'https://www.aaronfagan.ca/blog/2017/svg-credit-card-payment-icons-6-styles-80-icons/'
+  default_branch: 'main'
+  private: false
+  has_issues: true
+  has_wiki: false
+  has_downloads: false
+  has_projects: false
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+
+labels:
+  - name: 'bug'
+    color: 'CC0000'
+  - name: 'feature'
+    color: '336699'
+  # - name: 'first-timers-only'
+  #   oldname: 'Help Wanted' # Include if renaming
