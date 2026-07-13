@@ -30,7 +30,7 @@
         "title": "{name} needs a driver",
         "description": "No driver for **{name}** is available, so it cannot print yet.\n\nMost printers are matched automatically; yours needs one from its manufacturer. Paste a link to the driver — a `.deb`, a `.ppd`, or the vendor's `.tar.gz`.\n\nYou can leave this empty and add it later in the add-on's Drivers option.",
         "data": {
-          "driver": "Driver link"
+          "driver": "Driver file URL"
         },
         "data_description": {
           "driver": "A direct link to the driver file. Host it yourself if you can — vendor links break when they publish an update."
@@ -73,7 +73,7 @@
             "device": "Printer",
             "location": "Location",
             "emoji": "Icon",
-            "driver": "Driver link"
+            "driver": "Driver file URL"
           },
           "data_description": {
             "name": "Printer name. Default: {default}",
@@ -87,7 +87,7 @@
           "title": "{name} needs a driver",
           "description": "No driver for **{name}** is available, so it cannot print yet.\n\nMost printers are matched automatically; yours needs one from its manufacturer. Paste a link to the driver — a `.deb`, a `.ppd`, or the vendor's `.tar.gz`.\n\nYou can leave this empty and add it later in the add-on's Drivers option.",
           "data": {
-            "driver": "Driver link"
+            "driver": "Driver file URL"
           },
           "data_description": {
             "driver": "A direct link to the driver file. Host it yourself if you can — vendor links break when they publish an update."
