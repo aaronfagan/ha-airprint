@@ -26,7 +26,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
-from .const import DEFAULT_EMOJI, DEFAULT_PORT, DOMAIN, EMOJI, SUBENTRY, device_name
+from .const import DEFAULT_ICON, DEFAULT_PORT, DOMAIN, ICONS, SUBENTRY, device_name
 
 
 def printer_schema(
@@ -54,8 +54,8 @@ def printer_schema(
             fields[vol.Required("device", default="")] = TextSelector()
 
     fields[vol.Optional("location")] = TextSelector()
-    fields[vol.Optional("emoji")] = SelectSelector(
-        SelectSelectorConfig(options=EMOJI, custom_value=True, mode=SelectSelectorMode.DROPDOWN)
+    fields[vol.Optional("icon")] = SelectSelector(
+        SelectSelectorConfig(options=ICONS, custom_value=True, mode=SelectSelectorMode.DROPDOWN)
     )
 
     if editing:
@@ -80,7 +80,7 @@ def printer_suggested(discovered: list[dict], current: dict[str, Any] | None = N
         "name": current.get("name")
         or (discovered[0].get("name", "") if discovered else ""),
         "location": current.get("location", ""),
-        "emoji": current.get("emoji", DEFAULT_EMOJI),
+        "icon": current.get("icon", DEFAULT_ICON),
         "driver": current.get("driver", ""),
     }
 
@@ -105,7 +105,7 @@ def printer_data(
     name = user_input.get("name", "").strip() or discovered_name
 
     return {
-        "emoji": user_input.get("emoji", ""),
+        "icon": user_input.get("icon", ""),
         "name": name,
         "device": device or "",
         "driver": user_input.get("driver", current.get("driver", "")),

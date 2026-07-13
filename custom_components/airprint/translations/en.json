@@ -8,13 +8,13 @@
           "name": "Name",
           "device": "Printer",
           "location": "Location",
-          "emoji": "Icon"
+          "icon": "Icon"
         },
         "data_description": {
           "name": "Printer name. Default: {default}",
           "device": "The printer's IP address, e.g. 192.168.1.50.",
           "location": "Printer location. Optional.",
-          "emoji": "Printer icon. Optional."
+          "icon": "Printer icon. Optional."
         },
         "description": "{found}"
       },
@@ -56,13 +56,13 @@
             "name": "Name",
             "device": "Printer",
             "location": "Location",
-            "emoji": "Icon"
+            "icon": "Icon"
           },
           "data_description": {
             "name": "Printer name. Default: {default}",
             "device": "The printer's IP address, e.g. 192.168.1.50.",
             "location": "Printer location. Optional.",
-            "emoji": "Printer icon. Optional."
+            "icon": "Printer icon. Optional."
           },
           "description": "{found}"
         },
@@ -72,14 +72,14 @@
             "name": "Name",
             "device": "Printer",
             "location": "Location",
-            "emoji": "Icon",
+            "icon": "Icon",
             "driver": "Driver file URL"
           },
           "data_description": {
             "name": "Printer name. Default: {default}",
             "device": "Which printer on your network to print to.",
             "location": "Printer location. Optional.",
-            "emoji": "Printer icon. Optional.",
+            "icon": "Printer icon. Optional.",
             "driver": "Only needed if no driver was matched for this printer. Optional."
           }
         },

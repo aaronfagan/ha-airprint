@@ -69,7 +69,7 @@ for i in $(seq 0 $((COUNT - 1))); do
 	NAME=$(jq -r ".printers[${i}].name" "${OPTIONS}")
 	DEVICE=$(jq -r ".printers[${i}].device // .printers[${i}].address // \"\"" "${OPTIONS}")
 	LOCATION=$(jq -r ".printers[${i}].location // \"\"" "${OPTIONS}")
-	EMOJI=$(jq -r ".printers[${i}].emoji // \"\"" "${OPTIONS}")
+	ICON=$(jq -r ".printers[${i}].icon // \"\"" "${OPTIONS}")
 
 	QUEUE=$(printf '%s' "${NAME}" | tr -cs 'A-Za-z0-9_-' '_' | sed -e 's/^_*//' -e 's/_*$//')
 	if [ -z "${QUEUE}" ]; then
@@ -93,10 +93,10 @@ for i in $(seq 0 $((COUNT - 1))); do
 
 	DRIVER=$(driver_for "${DEVICE_ID}" "${MODEL}")
 
-	if [ -z "${EMOJI}" ]; then
+	if [ -z "${ICON}" ]; then
 		LABEL="${NAME}"
 	else
-		LABEL="${EMOJI} ${NAME}"
+		LABEL="${ICON} ${NAME}"
 	fi
 
 

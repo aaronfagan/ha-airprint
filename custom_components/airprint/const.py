@@ -7,8 +7,8 @@ SUPERVISOR = "http://supervisor"
 SUBENTRY = "printer"
 DEVICE_NAME = "Printer"
 
-EMOJI = ["🖨️", "📠", "📄", "📁", "☁️", "🏢", "🏠"]
-DEFAULT_EMOJI = "🖨️"
+ICONS = ["🖨️", "📠", "📄", "📁", "☁️", "🏢", "🏠"]
+DEFAULT_ICON = "🖨️"
 
 
 def device_id(device: str) -> str:
