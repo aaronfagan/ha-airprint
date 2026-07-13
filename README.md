@@ -38,11 +38,13 @@ Install **AirPrint** and start it.
 
 | Field | |
 | --- | --- |
-| **Name** | Pre-filled with the printer's make and model. This is the name shown in the print dialogue. |
+| **Name** | Pre-filled with the printer's make and model. This is the name shown in the print dialogue. Clear it to go back to the make and model. |
 | **Location** | Optional. Shown under the name when printing. |
-| **Icon** | An emoji, shown in front of the name — see [Icons](#icons). |
+| **Icon** | Optional. An emoji shown in front of the name — see [Icons](#icons). |
 
 There is no IP address to type. The printer is found on the network, and stays found even if its address changes — see [How it finds your printer](#how-it-finds-your-printer).
+
+If no driver is available for your printer, you are asked for one here — see [Drivers](#drivers).
 
 That's it. The printer now appears in the print dialogue on any device that speaks AirPrint.
 
@@ -52,7 +54,7 @@ Each printer becomes a device in Home Assistant:
 
 | Entity | What it tells you |
 | --- | --- |
-| **Status** | `Ready`, `Printing`, `Out of paper`, `Paper jam`, `Toner low`, `Door open`, `Offline` |
+| **Status** | `Ready`, `Printing`, `Out of paper`, `Paper jam`, `Toner low`, `Door open`, `Offline`, `No driver` |
 | **Health** | `OK` / `Problem` — the one to alert on |
 | **Online** | Whether the printer answers on the network |
 | **Queue** | Jobs waiting |
@@ -61,7 +63,7 @@ Each printer becomes a device in Home Assistant:
 
 Toner, page count and the *reason* behind a problem come from **SNMP** (the standard Printer MIB). Printers that don't expose it don't get those sensors; everything else still works.
 
-You also get a notification when a printer is refusing jobs with work queued behind it — *"Out of paper"* — and when a printer turns up on the network that isn't set up yet.
+You also get a notification when a printer is refusing jobs with work queued behind it — *"Out of paper"* — when a printer turns up on the network that isn't set up yet, and when a printer has no driver and so cannot print.
 
 ## Drivers
 
@@ -71,7 +73,9 @@ The free driver set is bundled (Gutenprint, brlaser, foomatic, the OpenPrinting 
 
 **If your printer needs a driver from its manufacturer**, supply it yourself — vendor drivers are proprietary and cannot be shipped with the add-on. Two ways:
 
-**Give Home Assistant a link to it.** If no driver is matched when you add the printer, you are asked for one — paste a link and it is downloaded, cached and installed. You can also change it later from the printer's **Driver file URL** field.
+**Give Home Assistant a link to it.** If no driver is matched when you add the printer, you are asked for one. Paste a link and it is downloaded, cached and installed — it belongs to that printer, and you can change it later from its **Driver file URL** field.
+
+Skip it and the printer is still added, but its **Status** reads `No driver` and Home Assistant raises a repair until you supply one.
 
 A `.deb`, a `.ppd` or a vendor `.tar.gz` all work — for a tarball, the packages inside that match your architecture are found and installed. Change the link and the old file is cleaned up.
 
@@ -118,7 +122,9 @@ A printer that advertises no Bonjour service at all is the one case where you ar
 
 ## Icons
 
-**On iOS, a printer's "icon" is an emoji in its name.** The print picker shows the advertised name and ignores the icon image entirely. So pick an emoji in the **Icon** field and it is prefixed to the name.
+**On iOS, a printer's "icon" is an emoji in its name.** The print picker shows the advertised name and ignores the icon image entirely. So pick an emoji in the **Icon** field and it is prefixed to the name — in the print dialogue and in Home Assistant, so the printer reads the same in both.
+
+It is also a way to tell two printers apart when they share a name.
 
 Desktop clients *do* fetch the icon image, and the add-on serves one automatically. Nothing to configure.
 

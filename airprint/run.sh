@@ -77,6 +77,13 @@ for i in $(seq 0 $((COUNT - 1))); do
 		continue
 	fi
 
+	SUFFIX=2
+	BASE="${QUEUE}"
+	while cut -f1 "${QUEUES}" | grep -qxF "${QUEUE}"; do
+		QUEUE="${BASE}_${SUFFIX}"
+		SUFFIX=$((SUFFIX + 1))
+	done
+
 	if [ -z "${DEVICE}" ]; then
 		DEVICE=$(printf '%s' "${FOUND}" | jq -r '.[0].device // ""')
 	elif ! printf '%s' "${DEVICE}" | grep -q '://'; then
