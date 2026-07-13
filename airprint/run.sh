@@ -99,6 +99,7 @@ for i in $(seq 0 $((COUNT - 1))); do
 		LABEL="${EMOJI} ${NAME}"
 	fi
 
+
 	if [ -z "${DRIVER}" ]; then
 		echo "[airprint] ${NAME}: no driver — add one in the add-on's Drivers option"
 		printf '%s\t%s\t%s\t%s\n' "${QUEUE}" "${DEVICE}" "${LABEL}" "" >> "${QUEUES}"

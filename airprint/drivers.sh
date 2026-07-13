@@ -30,7 +30,7 @@ while read -r url; do
 		continue
 	fi
 	mv "${file}.part" "${file}"
-done < <(jq -r '.drivers // [] | .[]' "${OPTIONS}")
+done < <(jq -r '[(.drivers // [])[], (.printers // [])[].driver] | map(select(. != null and . != "")) | unique | .[]' "${OPTIONS}")
 
 while read -r stale; do
 	[ -n "${stale}" ] || continue

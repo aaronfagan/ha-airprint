@@ -66,21 +66,6 @@ class AirPrintCoordinator(DataUpdateCoordinator):
     async def async_get_printers(self) -> list[dict]:
         return (await self.async_get_options()).get("printers", [])
 
-    async def async_add_driver(self, url: str) -> None:
-        if not self.slug:
-            raise RuntimeError("The AirPrint add-on was not found")
-
-        options = await self.async_get_options()
-        drivers = list(options.get("drivers") or [])
-
-        if url in drivers:
-            return
-
-        drivers.append(url)
-        options["drivers"] = drivers
-
-        await self._supervisor("POST", f"addons/{self.slug}/options", {"options": options})
-
     async def async_save_printers(self, printers: list[dict]) -> None:
         if not self.slug:
             raise RuntimeError("The AirPrint add-on was not found")

@@ -58,6 +58,11 @@ def printer_schema(
         SelectSelectorConfig(options=EMOJI, custom_value=True, mode=SelectSelectorMode.DROPDOWN)
     )
 
+    if editing:
+        fields[vol.Optional("driver")] = TextSelector(
+            TextSelectorConfig(type=TextSelectorType.URL)
+        )
+
     return vol.Schema(fields)
 
 
@@ -76,6 +81,7 @@ def printer_suggested(discovered: list[dict], current: dict[str, Any] | None = N
         or (discovered[0].get("name", "") if discovered else ""),
         "location": current.get("location", ""),
         "emoji": current.get("emoji", DEFAULT_EMOJI),
+        "driver": current.get("driver", ""),
     }
 
 
@@ -99,11 +105,12 @@ def printer_data(
     name = user_input.get("name", "").strip() or discovered_name
 
     return {
-        "name": name,
-        "discovered_name": discovered_name,
-        "device": device or "",
-        "location": user_input.get("location", ""),
         "emoji": user_input.get("emoji", ""),
+        "name": name,
+        "device": device or "",
+        "driver": user_input.get("driver", current.get("driver", "")),
+        "location": user_input.get("location", ""),
+        "discovered_name": discovered_name,
     }
 
 
@@ -115,7 +122,6 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
         self._port: int = DEFAULT_PORT
         self._discovered: list[dict] = []
         self._printer: dict[str, Any] | None = None
-        self._driver: str | None = None
 
     @classmethod
     @callback
@@ -164,13 +170,9 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_confirm()
 
     def _create(self, printer: dict[str, Any]) -> ConfigFlowResult:
-        data: dict[str, Any] = {CONF_HOST: self._host, CONF_PORT: self._port}
-        if self._driver:
-            data["driver"] = self._driver
-
         return self.async_create_entry(
             title="AirPrint",
-            data=data,
+            data={CONF_HOST: self._host, CONF_PORT: self._port},
             subentries=[
                 ConfigSubentryData(
                     data=printer,
@@ -190,9 +192,7 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             url = user_input.get("driver", "").strip()
-            if url:
-                self._driver = url
-            return self._create(self._printer)
+            return self._create({**self._printer, "driver": url})
 
         return self.async_show_form(
             step_id="driver",
@@ -295,18 +295,13 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
         if user_input is not None:
             url = user_input.get("driver", "").strip()
 
-            if url:
-                try:
-                    await self._coordinator.async_add_driver(url)
-                except Exception:
-                    errors["base"] = "driver_failed"
+            printer = {**self._printer, "driver": url}
 
-            if not errors:
-                return self.async_create_entry(
-                    title=self._printer["name"],
-                    data=self._printer,
-                    unique_id=self._printer["device"] or self._printer["name"],
-                )
+            return self.async_create_entry(
+                title=printer["name"],
+                data=printer,
+                unique_id=printer["device"] or printer["name"],
+            )
 
         return self.async_show_form(
             step_id="driver",

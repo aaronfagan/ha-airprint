@@ -16,11 +16,20 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
-FIELDS = ("name", "device", "location", "emoji")
-
-
 def _printer(data: dict) -> dict:
-    return {field: data.get(field, "") for field in FIELDS}
+    emoji = data.get("emoji", "")
+    name = data.get("name", "")
+
+    printer = {
+        "name": f"{emoji} {name}".strip(),
+        "device": data.get("device", ""),
+        "location": data.get("location", ""),
+    }
+
+    if data.get("driver"):
+        printer["driver"] = data["driver"]
+
+    return printer
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -71,16 +80,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.config_entries.async_update_subentry(
                 entry, subentry, title=subentry.data.get("name", "")
             )
-
-    driver = entry.data.get("driver")
-    if driver:
-        try:
-            await coordinator.async_add_driver(driver)
-        except Exception as err:
-            _LOGGER.warning("Could not add the driver %s: %s", driver, err)
-        hass.config_entries.async_update_entry(
-            entry, data={k: v for k, v in entry.data.items() if k != "driver"}
-        )
 
     wanted = [_printer(subentry.data) for subentry in entry.subentries.values()]
     if wanted != await coordinator.async_get_printers():

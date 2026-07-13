@@ -72,13 +72,15 @@
             "name": "Name",
             "device": "Printer",
             "location": "Location",
-            "emoji": "Icon"
+            "emoji": "Icon",
+            "driver": "Driver link"
           },
           "data_description": {
             "name": "Printer name. Default: {default}",
             "device": "Which printer on your network to print to.",
             "location": "Printer location. Optional.",
-            "emoji": "Printer icon. Optional."
+            "emoji": "Printer icon. Optional.",
+            "driver": "Only needed if no driver was matched for this printer. Optional."
           }
         },
         "driver": {
