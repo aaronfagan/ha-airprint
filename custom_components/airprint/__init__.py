@@ -17,11 +17,9 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 def _printer(data: dict) -> dict:
-    emoji = data.get("emoji", "")
-    name = data.get("name", "")
-
     printer = {
-        "name": f"{emoji} {name}".strip(),
+        "emoji": data.get("emoji", ""),
+        "name": data.get("name", ""),
         "device": data.get("device", ""),
         "location": data.get("location", ""),
     }
