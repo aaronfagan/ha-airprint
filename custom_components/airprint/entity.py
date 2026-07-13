@@ -3,7 +3,7 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DEVICE_NAME, DOMAIN, device_id
+from .const import DEVICE_NAME, DOMAIN, device_id, label
 from .coordinator import AirPrintCoordinator
 
 
@@ -12,7 +12,7 @@ class AirPrintEntity(CoordinatorEntity[AirPrintCoordinator]):
 
     def __init__(self, coordinator: AirPrintCoordinator, printer: dict, key: str) -> None:
         super().__init__(coordinator)
-        self._name = printer.get("name", "") or DEVICE_NAME
+        self._name = label(printer) or DEVICE_NAME
         self._model = printer.get("discovered_name") or self._name
         self._device = printer.get("device", "")
         self._attr_unique_id = f"{device_id(self._device)}_{key}"

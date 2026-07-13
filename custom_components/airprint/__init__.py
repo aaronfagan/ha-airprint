@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .const import DOMAIN, SUBENTRY, device_name
+from .const import DOMAIN, SUBENTRY, device_name, label
 from .coordinator import AirPrintCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -76,9 +76,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.config_entries.async_update_subentry(entry, subentry, data=repaired)
 
     for subentry in entry.subentries.values():
-        if subentry.title != subentry.data.get("name"):
+        if subentry.title != label(subentry.data):
             hass.config_entries.async_update_subentry(
-                entry, subentry, title=subentry.data.get("name", "")
+                entry, subentry, title=label(subentry.data)
             )
 
     wanted = [_printer(subentry.data) for subentry in entry.subentries.values()]

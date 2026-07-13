@@ -26,7 +26,7 @@ from homeassistant.helpers.selector import (
 )
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
-from .const import DEFAULT_ICON, DEFAULT_PORT, DOMAIN, ICONS, SUBENTRY, device_name
+from .const import DEFAULT_ICON, DEFAULT_PORT, DOMAIN, ICONS, SUBENTRY, device_name, label
 
 
 def printer_schema(
@@ -177,7 +177,7 @@ class AirPrintConfigFlow(ConfigFlow, domain=DOMAIN):
                 ConfigSubentryData(
                     data=printer,
                     subentry_type=SUBENTRY,
-                    title=printer["name"],
+                    title=label(printer),
                     unique_id=printer["device"] or printer["name"],
                 )
             ],
@@ -270,7 +270,7 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
                 return await self.async_step_driver()
 
             return self.async_create_entry(
-                title=printer["name"],
+                title=label(printer),
                 data=printer,
                 unique_id=printer["device"] or printer["name"],
             )
@@ -298,7 +298,7 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
             printer = {**self._printer, "driver": url}
 
             return self.async_create_entry(
-                title=printer["name"],
+                title=label(printer),
                 data=printer,
                 unique_id=printer["device"] or printer["name"],
             )
@@ -325,7 +325,7 @@ class PrinterSubentryFlow(ConfigSubentryFlow):
         if user_input is not None:
             printer = printer_data(user_input, self._discovered, current)
             return self.async_update_and_abort(
-                self._get_entry(), subentry, title=printer["name"], data=printer
+                self._get_entry(), subentry, title=label(printer), data=printer
             )
 
         return self.async_show_form(

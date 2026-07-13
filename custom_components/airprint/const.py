@@ -21,3 +21,9 @@ def device_name(device: str) -> str:
     if "://" in device:
         return device.split("://", 1)[1].strip("/") or DEVICE_NAME
     return device or DEVICE_NAME
+
+
+def label(printer: dict) -> str:
+    icon = printer.get("icon", "")
+    name = printer.get("name", "")
+    return f"{icon} {name}".strip()
