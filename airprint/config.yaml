@@ -3,8 +3,10 @@ version: "1.10.2"
 slug: airprint
 description: AirPrint bridge for network printers that do not support it
 url: https://github.com/aaronfagan/ha-airprint
+image: ghcr.io/aaronfagan/ha-airprint/airprint
 arch:
   - amd64
+  - aarch64
 init: true
 boot: auto
 startup: services
