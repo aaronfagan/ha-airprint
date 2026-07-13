@@ -1,7 +1,7 @@
 repository:
   name: 'ha-airprint'
-  description: 'SVG Credit Card & Payment Icons: 6 Styles, 80 Icons'
-  homepage: 'https://www.aaronfagan.ca/blog/2017/svg-credit-card-payment-icons-6-styles-80-icons/'
+  description: 'Home Assistant - AirPrint'
+  homepage: 'https://www.aaronfagan.ca/'
   default_branch: 'main'
   private: false
   has_issues: true
