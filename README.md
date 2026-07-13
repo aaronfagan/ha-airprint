@@ -30,7 +30,7 @@ Two pieces: an **add-on** (the print server) and an **integration** (the setup s
 https://github.com/aaronfagan/ha-airprint
 ```
 
-Install **AirPrint** and start it.
+Install **AirPrint** and start it. A prebuilt image is pulled — `amd64` and `aarch64`, nothing is compiled on your machine.
 
 **2. Integration** — add this repository to [HACS](https://hacs.xyz) as an Integration, install **AirPrint**, then restart Home Assistant. (Or copy `custom_components/airprint` into your `config` folder and restart.)
 
@@ -69,7 +69,7 @@ You also get a notification when a printer is refusing jobs with work queued beh
 
 Most printers need nothing here.
 
-The free driver set is bundled (Gutenprint, brlaser, foomatic, the OpenPrinting PPDs), and the right driver is **matched to your printer automatically** from its device ID. If the add-on's log shows a driver and a queue, you're done.
+The free driver set is bundled — over 11,000 drivers (Gutenprint, brlaser, foomatic, the OpenPrinting PPDs) — and the right one is **matched to your printer automatically** from its device ID. If the add-on's log shows a driver and a queue, you're done.
 
 **If your printer needs a driver from its manufacturer**, supply it yourself — vendor drivers are proprietary and cannot be shipped with the add-on. Two ways:
 
