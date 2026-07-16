@@ -18,12 +18,12 @@ notify() {
 		"${CORE}/services/persistent_notification/create" || true
 }
 
-port_open() {
-	timeout 4 bash -c "exec 3<>/dev/tcp/$1/$2" 2>/dev/null
-}
-
 snmp() {
 	snmpget -v1 -c public -t 2 -r 0 -Oqv "$1" "$2" 2>/dev/null | tr -d '"'
+}
+
+alive() {
+	[ -n "$(snmp "$1" 1.3.6.1.2.1.1.3.0)" ]
 }
 
 error_reasons() {
@@ -74,13 +74,13 @@ while true; do
 		CONFIGURED="${CONFIGURED} ${DEVICE}"
 		DRIVER=${DRIVER:-}
 
-		IFS=$'\t' read -r HOST PORT < <(resolve "${DEVICE}")
+		IFS=$'\t' read -r HOST _ < <(resolve "${DEVICE}")
 
 		if [ -z "${HOST:-}" ]; then
 			ONLINE=false
 			PROBLEM=false
 			HOST=""
-		elif port_open "${HOST}" "${PORT}"; then
+		elif alive "${HOST}"; then
 			ONLINE=true
 			PROBLEM=false
 		else
