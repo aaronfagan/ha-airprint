@@ -140,6 +140,9 @@ Desktop clients *do* fetch the icon image, and the add-on serves one automatical
 - **Multiple printers** — add as many as you like. Each becomes its own device.
 - **CUPS 3.x** drops the classic driver model that proprietary vendor drivers rely on. The add-on is pinned to Debian bookworm (CUPS 2.4). Not urgent, but worth knowing.
 
+## Additional Information
+- [Blog Article](https://www.aaronfagan.ca/blog/2026/airprint-for-home-assistant/)
+
 ## Licence
 
 [MIT](LICENSE). Vendor drivers are downloaded from the vendor and covered by their own licences; none are redistributed here.
