@@ -1,25 +1,6 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-devices() {
-	lpinfo -l -v 2>/dev/null | awk '
-		/^Device: uri = socket:\/\// { ip=$4; sub("socket://","",ip); sub(":.*","",ip); model=""; id=""; next }
-		/make-and-model =/ && ip != "" { model=$0; sub(/^[[:space:]]*make-and-model = /,"",model); next }
-		/device-id =/ && ip != "" {
-			id=$0; sub(/^[[:space:]]*device-id = /,"",id)
-			print ip "\t" model "\t" id
-			ip=""; model=""; id=""
-		}
-	'
-}
-
-DEVICES=$(devices)
-for _ in 1 2 3; do
-	[ -n "${DEVICES}" ] && break
-	sleep 3
-	DEVICES=$(devices)
-done
-
 driver_for() {
 	local device_id=$1 model=$2 driver=""
 
@@ -34,33 +15,32 @@ driver_for() {
 	printf '%s' "${driver}"
 }
 
-FOUND="[]"
-SEEN=""
+txt_value() {
+	printf '%s' "$1" | grep -o "\"$2=[^\"]*\"" | head -1 | sed "s/^\"$2=//; s/\"\$//"
+}
 
-while IFS=';' read -r _ _ _ SERVICE _ _ _ IP _ _; do
+FOUND="[]"
+
+while IFS=';' read -r _ _ _ SERVICE _ _ _ IP _ TXT; do
 	[ -n "${SERVICE}" ] || continue
-	ROW=$(printf '%s\n' "${DEVICES}" | awk -F'\t' -v ip="${IP}" '$1 == ip { print; exit }')
-	MODEL=$(printf '%s' "${ROW}" | cut -f2)
-	DEVICE_ID=$(printf '%s' "${ROW}" | cut -f3)
+
+	MFG=$(txt_value "${TXT}" usb_MFG)
+	MDL=$(txt_value "${TXT}" usb_MDL)
+
+	MODEL="${MDL}"
+	[ -n "${MODEL}" ] || MODEL=$(txt_value "${TXT}" ty)
+	[ -n "${MODEL}" ] || MODEL=$(txt_value "${TXT}" product | tr -d '()')
 	[ -n "${MODEL}" ] || MODEL="${SERVICE}"
+
+	DEVICE_ID=""
+	[ -n "${MFG}" ] && DEVICE_ID="MFG:${MFG};"
+	[ -n "${MDL}" ] && DEVICE_ID="${DEVICE_ID}MDL:${MDL};"
+
 	DRIVER=$(driver_for "${DEVICE_ID}" "${MODEL}")
 	FOUND=$(printf '%s' "${FOUND}" | jq -c \
 		--arg device "dnssd://${SERVICE}._pdl-datastream._tcp.local/" \
 		--arg name "${MODEL}" --arg address "${IP}" --arg id "${DEVICE_ID}" --arg driver "${DRIVER}" \
 		'. + [{device:$device, name:$name, address:$address, device_id:$id, driver:$driver}]')
-	SEEN="${SEEN} ${IP}"
 done < <(timeout 6 avahi-browse -rtp _pdl-datastream._tcp 2>/dev/null | grep '^=' | grep ';IPv4;')
-
-while IFS=$'\t' read -r IP MODEL DEVICE_ID; do
-	[ -n "${IP}" ] || continue
-	case " ${SEEN} " in
-	*" ${IP} "*) continue ;;
-	esac
-	DRIVER=$(driver_for "${DEVICE_ID}" "${MODEL}")
-	FOUND=$(printf '%s' "${FOUND}" | jq -c \
-		--arg device "socket://${IP}" --arg name "${MODEL}" \
-		--arg address "${IP}" --arg id "${DEVICE_ID}" --arg driver "${DRIVER}" \
-		'. + [{device:$device, name:$name, address:$address, device_id:$id, driver:$driver}]')
-done <<<"${DEVICES}"
 
 printf '%s' "${FOUND}" | jq -c 'unique_by(.device)'
