@@ -60,7 +60,8 @@ resolve() {
 		local service=${1#dnssd://}
 		service=${service%%._*}
 		timeout 6 avahi-browse -rtp _pdl-datastream._tcp 2>/dev/null |
-			awk -F';' -v name="${service}" '$1 == "=" && $3 == "IPv4" && $4 == name { print $8 "\t" $9; exit }'
+			AIRPRINT_SERVICE="${service}" \
+			awk -F';' '$1 == "=" && $3 == "IPv4" && $4 == ENVIRON["AIRPRINT_SERVICE"] { print $8 "\t" $9; exit }'
 		;;
 	socket://*)
 		local hostport=${1#socket://}
@@ -71,6 +72,11 @@ resolve() {
 		;;
 	esac
 }
+
+if [ -n "${AIRPRINT_RESOLVE_TEST:-}" ]; then
+	resolve "${AIRPRINT_RESOLVE_TEST}"
+	exit 0
+fi
 
 while true; do
 	PRINTERS="[]"
