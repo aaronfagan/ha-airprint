@@ -32,10 +32,13 @@ jobs:
       - name: They must parse
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
-          for script in airprint/*.sh scripts/*.sh; do
+          for script in airprint/*.sh scripts/*.sh tests/*.sh; do
             bash -n "${script}"
             shellcheck -S warning "${script}" || true
           done
+
+      - name: The resolver must work
+        run: bash tests/test_resolve.sh
 
   addon:
     name: Add-on (${{ matrix.arch }})
